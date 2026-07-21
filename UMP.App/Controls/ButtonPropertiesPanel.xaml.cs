@@ -230,18 +230,80 @@ public partial class ButtonPropertiesPanel : System.Windows.Controls.UserControl
         };
     }
 
+    /// <summary>Zone visee par l'action : ZoneId si defini et connu, sinon la zone locale.</summary>
+    private Zone ResolveTargetZone(ButtonAction action)
+        => !string.IsNullOrEmpty(action.ZoneId)
+           && _zones is not null
+           && _zones.TryGetValue(action.ZoneId, out var rt)
+            ? rt.Zone : _zone;
+
+    /// <summary>
+    /// Selecteur de zone cible (actions cross-zone). "Cette zone" = ZoneId null.
+    /// onChanged est rappele apres changement pour reconstruire les parametres
+    /// dependants de la zone (ex. liste d'items de JumpToItem).
+    /// </summary>
+    private UIElement BuildZoneSelector(ButtonAction action, Action onChanged)
+    {
+        var sp = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
+        sp.Children.Add(new TextBlock
+        {
+            Text = "Zone cible", FontSize = 9,
+            Foreground = new SolidColorBrush(Color.FromRgb(100, 95, 150)),
+            Margin = new Thickness(0, 0, 0, 2)
+        });
+        var cmb = new ComboBox();
+        ApplyDarkComboStyle(cmb);
+        cmb.Items.Add(new ComboBoxItem { Content = "Cette zone", Tag = null });
+        foreach (var rt in _zones.Values)
+        {
+            if (rt.Zone.Id == _zone.Id) continue;
+            cmb.Items.Add(new ComboBoxItem
+            { Content = $"{rt.Zone.Name} (ecran {rt.Zone.ScreenIndex + 1})", Tag = rt.Zone.Id });
+        }
+        cmb.SelectedIndex = 0;
+        if (!string.IsNullOrEmpty(action.ZoneId))
+        {
+            var found = false;
+            foreach (ComboBoxItem ci in cmb.Items)
+                if (ci.Tag as string == action.ZoneId) { cmb.SelectedItem = ci; found = true; break; }
+            // Zone supprimee depuis : revenir a "Cette zone"
+            if (!found) action.ZoneId = null;
+        }
+        cmb.SelectionChanged += (s, e) =>
+        {
+            if (cmb.SelectedItem is ComboBoxItem ci)
+            {
+                var newId = ci.Tag as string;
+                if (newId != action.ZoneId) { action.ZoneId = newId; onChanged(); }
+            }
+        };
+        sp.Children.Add(cmb);
+        return sp;
+    }
+
     private void BuildParams(StackPanel panel, ButtonAction action, ButtonActionType type)
     {
+        // Selecteur de zone cible pour les actions per-zone (si plusieurs zones)
+        if (ButtonActionTypes.IsPerZone(type))
+        {
+            if (_zones is not null && _zones.Count > 1)
+                panel.Children.Add(BuildZoneSelector(action,
+                    () => { panel.Children.Clear(); BuildParams(panel, action, type); }));
+        }
+        else
+            action.ZoneId = null; // actions globales : pas de cible
+
         switch (type)
         {
             case ButtonActionType.JumpToItem:
                 var cmb = new ComboBox();
                 ApplyDarkComboStyle(cmb);
-                if (_zone.Sequence is not null)
+                var jumpZone = ResolveTargetZone(action);
+                if (jumpZone.Sequence is not null)
                 {
-                    for (int i = 0; i < _zone.Sequence.Items.Count; i++)
+                    for (int i = 0; i < jumpZone.Sequence.Items.Count; i++)
                     {
-                        var itm = _zone.Sequence.Items[i];
+                        var itm = jumpZone.Sequence.Items[i];
                         var name = itm.IsImageSlide
                             ? $"Img {Path.GetFileName(itm.ImageSlidePath ?? "")}"
                             : $"Vid {Path.GetFileName(itm.MediaPath ?? "")}";

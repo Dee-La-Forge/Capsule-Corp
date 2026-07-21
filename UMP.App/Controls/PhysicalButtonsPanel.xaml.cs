@@ -293,13 +293,69 @@ public partial class PhysicalButtonsPanel : System.Windows.Controls.UserControl
         return new StackPanel { Children = { row, paramPanel } };
     }
 
+    /// <summary>
+    /// Selecteur de zone cible pour un bouton physique.
+    /// ZoneId null = premiere zone (transport) ou toutes les zones (PiP) — compatibilite.
+    /// </summary>
+    private UIElement BuildZoneSelector(ButtonAction action, StackPanel paramPanel)
+    {
+        var sp = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
+        sp.Children.Add(new TextBlock
+        { Text = "Zone cible", Foreground = Brushes.Gray, FontSize = 9 });
+        var cmb = new ComboBox();
+        ApplyDarkComboStyle(cmb);
+        var defaultLabel = ButtonActionTypes.IsPip(action.Type)
+            ? "Toutes les zones (defaut)" : "Premiere zone (defaut)";
+        cmb.Items.Add(new ComboBoxItem { Content = defaultLabel, Tag = null });
+        foreach (var z in _zones!)
+            cmb.Items.Add(new ComboBoxItem
+            { Content = $"{z.Name} (ecran {z.ScreenIndex + 1})", Tag = z.Id });
+        cmb.SelectedIndex = 0;
+        if (!string.IsNullOrEmpty(action.ZoneId))
+        {
+            var found = false;
+            foreach (ComboBoxItem ci in cmb.Items)
+                if (ci.Tag as string == action.ZoneId) { cmb.SelectedItem = ci; found = true; break; }
+            // Zone supprimee depuis : revenir au defaut
+            if (!found) action.ZoneId = null;
+        }
+        cmb.SelectionChanged += (s, e) =>
+        {
+            if (cmb.SelectedItem is ComboBoxItem ci)
+            {
+                var newId = ci.Tag as string;
+                if (newId == action.ZoneId) return;
+                action.ZoneId = newId;
+                // Reconstruire les parametres dependants de la zone (liste d'items)
+                paramPanel.Children.Clear();
+                BuildActionParams(paramPanel, action);
+                Changed?.Invoke();
+            }
+        };
+        sp.Children.Add(cmb);
+        return sp;
+    }
+
     private void BuildActionParams(StackPanel panel, ButtonAction action)
     {
+        // Selecteur de zone cible pour les actions per-zone (si plusieurs zones)
+        if (ButtonActionTypes.IsPerZone(action.Type))
+        {
+            if (_zones is not null && _zones.Count > 1)
+                panel.Children.Add(BuildZoneSelector(action, panel));
+        }
+        else
+            action.ZoneId = null; // actions globales : pas de cible
+
         switch (action.Type)
         {
             case ButtonActionType.JumpToItem:
             case ButtonActionType.JumpToItemAllScreens:
-                var refZone = _zones?.FirstOrDefault(z => z.Sequence is not null && z.Sequence.Items.Count > 0);
+                // JumpToItem : la liste d'items vient de la zone ciblee ;
+                // JumpToItemAllScreens (global) : premiere zone avec sequence.
+                var refZone = !string.IsNullOrEmpty(action.ZoneId)
+                    ? _zones?.FirstOrDefault(z => z.Id == action.ZoneId)
+                    : _zones?.FirstOrDefault(z => z.Sequence is not null && z.Sequence.Items.Count > 0);
                 if (refZone?.Sequence is null) break;
                 var lblStart = new TextBlock { Text = "Item debut", Foreground = Brushes.Gray, FontSize = 9 };
                 var cmbItem = new ComboBox();

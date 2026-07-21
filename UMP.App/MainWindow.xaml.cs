@@ -963,15 +963,22 @@ public partial class MainWindow : Window
             case ButtonActionType.TogglePip:
             case ButtonActionType.ShowPip:
             case ButtonActionType.HidePip:
-                // Le PiP peut se trouver sur n'importe quel ecran : diffuser a toutes les
-                // fenetres d'apercu (chacune agit sur ses propres PiP).
+                // ZoneId defini -> seulement la fenetre de cette zone ;
+                // sinon diffuser a toutes (le PiP peut etre sur n'importe quel ecran).
                 foreach (var w in _previewWindows)
-                    w.ExecuteActionPublic(action);
+                    if (string.IsNullOrEmpty(action.ZoneId) || w.ZoneId == action.ZoneId)
+                        w.ExecuteActionPublic(action);
                 break;
             default:
-                // Actions per-zone : les executer sur la premiere PreviewWindow
-                if (_previewWindows.Count > 0)
-                    _previewWindows[0].ExecuteActionPublic(action);
+                // Actions per-zone : ZoneId defini -> fenetre de la zone cible ;
+                // sinon premiere fenetre (compatibilite anciens projets).
+                var target = !string.IsNullOrEmpty(action.ZoneId)
+                    ? _previewWindows.FirstOrDefault(w => w.ZoneId == action.ZoneId)
+                    : _previewWindows.FirstOrDefault();
+                if (target is null)
+                    UMP.Core.Log.Warn($"Bouton physique {action.Type} : zone cible '{action.ZoneId}' introuvable");
+                else
+                    target.ExecuteActionPublic(action);
                 break;
         }
     }

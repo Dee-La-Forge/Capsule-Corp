@@ -19,7 +19,23 @@ public class ButtonAction
     /// <summary>Dernier item de la plage pour JumpToItemAllScreens (inclus)</summary>
     public int? EndItemIndex { get; set; }
     public string? MediaPath { get; set; }
+    /// <summary>
+    /// Zone cible de l'action (actions cross-zone).
+    /// null = comportement par defaut : zone locale pour un bouton overlay,
+    /// premiere zone (transport) ou toutes les zones (PiP) pour un bouton physique.
+    /// </summary>
     public string? ZoneId { get; set; }
+}
+
+public static class ButtonActionTypes
+{
+    /// <summary>Types d'action qui ciblent une zone precise (ZoneId applicable).</summary>
+    public static bool IsPerZone(ButtonActionType t)
+        => t is not (ButtonActionType.StopAllScreens or ButtonActionType.JumpToItemAllScreens);
+
+    /// <summary>Types d'action PiP (ZoneId null = toutes les zones pour un bouton physique).</summary>
+    public static bool IsPip(ButtonActionType t)
+        => t is ButtonActionType.TogglePip or ButtonActionType.ShowPip or ButtonActionType.HidePip;
 }
 
 public enum BorderPosition { Inside, Outside }

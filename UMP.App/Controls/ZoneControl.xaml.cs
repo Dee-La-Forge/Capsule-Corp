@@ -2771,6 +2771,12 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
 
     private void ExecuteButtonAction(ButtonAction action)
     {
+        // Actions cross-zone : dans l'editeur une seule zone est affichee a la fois,
+        // on ignore donc les actions qui ciblent une autre zone (elles prennent
+        // effet en Apercu et dans le Player). Sans ce garde, un bouton
+        // "Stop zone 2" clique dans l'editeur stopperait la zone courante.
+        if (!string.IsNullOrEmpty(action.ZoneId) && _zone is not null && action.ZoneId != _zone.Id)
+            return;
         switch (action.Type)
         {
             case ButtonActionType.Play:

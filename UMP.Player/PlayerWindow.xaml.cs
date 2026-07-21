@@ -42,10 +42,17 @@ public partial class PlayerWindow : Window
     public static void InvokeStopAllScreens() => StopAllScreensRequested?.Invoke();
     public static void InvokeJumpToItemAllScreens(int start, int end) => JumpToItemAllScreensRequested?.Invoke(start, end);
 
+    /// <summary>Fenetres vivantes, indexees pour le routage cross-zone (UI thread uniquement).</summary>
+    private static readonly List<PlayerWindow> _instances = new();
+
+    /// <summary>Id de la zone affichee par cette fenetre.</summary>
+    public string ZoneId => _zone.Id;
+
     public PlayerWindow(Zone zone)
     {
         InitializeComponent();
         _zone = zone;
+        _instances.Add(this);
         _mediaModule = new MediaModule();
         _mediaModule.SetVolume(zone.IsMuted ? 0 : zone.Volume);
         _mediaModule.IsLooping = zone.IsLooping;
@@ -752,6 +759,22 @@ public partial class PlayerWindow : Window
 
     private void ExecuteAction(ButtonAction action)
     {
+        // Routage cross-zone : une action qui cible une autre zone est executee
+        // par la fenetre de cette zone (ex. bouton sur l'ecran 1 pilotant l'ecran 2).
+        if (!string.IsNullOrEmpty(action.ZoneId) && action.ZoneId != _zone.Id)
+        {
+            var target = _instances.FirstOrDefault(w => !w._closed && w._zone.Id == action.ZoneId);
+            if (target is null)
+                UMP.Core.Log.Warn($"Action {action.Type} : zone cible '{action.ZoneId}' introuvable");
+            else
+                target.ExecuteActionLocal(action);
+            return;
+        }
+        ExecuteActionLocal(action);
+    }
+
+    private void ExecuteActionLocal(ButtonAction action)
+    {
         switch (action.Type)
         {
             case ButtonActionType.Play:
@@ -908,6 +931,7 @@ public partial class PlayerWindow : Window
     {
         if (_closed) { base.OnClosed(e); return; }
         _closed = true;
+        _instances.Remove(this);
         StopAllScreensRequested -= OnStopAllScreens;
         JumpToItemAllScreensRequested -= OnJumpToItemAllScreens;
         _timer?.Stop(); _timer = null;
