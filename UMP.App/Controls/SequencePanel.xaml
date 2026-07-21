@@ -1,0 +1,63 @@
+<UserControl x:Class="UMP.App.Controls.SequencePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="420" Background="{StaticResource BgPanelBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource BgDarkBrush}"
+                BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="14,0">
+                <TextBlock Text="SEQUENCE" Foreground="White" FontSize="13"
+                           FontWeight="SemiBold" FontFamily="{StaticResource UIFont}"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="BtnClose" Style="{StaticResource BtnClose}" Click="BtnClose_Click"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="ItemsPanel" Margin="10,8"/>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Padding="10,8"
+                BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="0,1,0,0">
+            <StackPanel>
+                <!-- Boutons ajout -->
+                <Grid x:Name="AddButtonsPanel" Visibility="Collapsed" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="BtnAddVideo" Grid.Column="0" Height="32"
+                            Style="{StaticResource Btn}" Click="BtnAddVideo_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#127916;" FontSize="13" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Video" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnAddSlide" Grid.Column="2" Height="32"
+                            Style="{StaticResource Btn}" Click="BtnAddSlide_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#128247;" FontSize="13" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Plan fixe" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <!-- Boucler -->
+                <ToggleButton x:Name="ChkLoop" Height="30" Cursor="Hand"
+                              Style="{StaticResource Toggle}"
+                              Checked="ChkLoop_Changed" Unchecked="ChkLoop_Changed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#x21BB;" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Boucler la sequence" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ToggleButton>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

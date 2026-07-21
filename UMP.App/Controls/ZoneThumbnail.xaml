@@ -1,0 +1,37 @@
+<UserControl x:Class="UMP.App.Controls.ZoneThumbnail"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="150" Height="85" Cursor="Hand"
+             MouseLeftButtonUp="OnClick">
+    <Border x:Name="ThumbBorder" Background="{StaticResource BgWindowBrush}"
+            BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="1.5"
+            CornerRadius="8" Margin="3">
+        <Grid>
+            <!-- Zone de preview -->
+            <Border Background="{StaticResource BgDarkBrush}"
+                    CornerRadius="7,7,0,0"/>
+
+            <!-- Badge video -->
+            <Border x:Name="VideoIndicator"
+                    VerticalAlignment="Top" HorizontalAlignment="Left"
+                    Background="#1A3A1A" CornerRadius="0,0,5,5"
+                    Padding="5,2" Margin="6,0,0,0" Visibility="Collapsed">
+                <TextBlock x:Name="TxtVideoStatus" Foreground="#50C878"
+                           FontSize="7" FontFamily="{StaticResource UIFont}"/>
+            </Border>
+
+            <!-- Info en bas -->
+            <Border VerticalAlignment="Bottom" Background="{StaticResource BgPanelBrush}"
+                    CornerRadius="0,0,7,7" Padding="8,5">
+                <StackPanel>
+                    <TextBlock x:Name="TxtName" Text="Zone" Foreground="White"
+                               FontSize="11" FontWeight="SemiBold"
+                               FontFamily="{StaticResource UIFont}"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="TxtScreen" Text="Ecran 1" Foreground="#666"
+                               FontSize="8" FontFamily="{StaticResource UIFont}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

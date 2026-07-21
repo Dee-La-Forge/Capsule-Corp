@@ -1,0 +1,117 @@
+<Window x:Class="UMP.App.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" Width="700" Height="440"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False" Topmost="True">
+    <Border CornerRadius="20" BorderThickness="1"
+            BorderBrush="#2A2A2A" ClipToBounds="True">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="50"
+                              ShadowDepth="0" Opacity="0.95"/>
+        </Border.Effect>
+        <Border.Background>
+            <RadialGradientBrush Center="0.5,0.4" RadiusX="0.8" RadiusY="0.8">
+                <GradientStop Color="#1A1A1A" Offset="0"/>
+                <GradientStop Color="#0A0A0A" Offset="1"/>
+            </RadialGradientBrush>
+        </Border.Background>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="50"/>
+            </Grid.RowDefinitions>
+
+            <!-- Zone centrale -->
+            <Grid Grid.Row="0" Margin="0,30,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Centre : Logo + Texte -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                            HorizontalAlignment="Center">
+                    <!-- Logo Capsule Corp avec glow cyan -->
+                    <Border Width="110" Height="110" CornerRadius="55"
+                            ClipToBounds="True" Margin="0,0,0,16">
+                        <Border.Effect>
+                            <DropShadowEffect Color="{StaticResource Accent}" BlurRadius="30"
+                                              ShadowDepth="0" Opacity="0.7"/>
+                        </Border.Effect>
+                        <Image Source="Assets/Logo.png" Stretch="Uniform"/>
+                    </Border>
+
+                    <!-- Titre -->
+                    <TextBlock FontSize="36" FontWeight="Bold"
+                               FontFamily="{StaticResource UIFont}"
+                               HorizontalAlignment="Center">
+                        <TextBlock.Foreground>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="White" Offset="0"/>
+                                <GradientStop Color="#38BDF8" Offset="1"/>
+                            </LinearGradientBrush>
+                        </TextBlock.Foreground>
+                        <Run Text="Capsule"/><Run Text="Media" Foreground="{StaticResource AccentBrush}"/>
+                    </TextBlock>
+
+                    <TextBlock Text="S Y S T E M E   M U L T I M E D I A"
+                               FontSize="9" FontFamily="{StaticResource UIFont}"
+                               Foreground="{StaticResource TextTertiaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+
+                <!-- Espace droit (equilibre) -->
+                <Grid Grid.Column="2"/>
+            </Grid>
+
+            <!-- Credits + Version -->
+            <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
+                    <TextBlock Text="v1.00" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentBrush}"/>
+                    <Rectangle Width="1" Fill="{StaticResource TextMutedBrush}" Margin="10,2"/>
+                    <TextBlock FontSize="10">
+                        <Run Text="par " Foreground="{StaticResource TextMutedBrush}"/>
+                        <Run Text="Meddy BOUKHEDDOUMA" FontWeight="SemiBold"
+                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </TextBlock>
+                    <Rectangle Width="1" Fill="{StaticResource TextMutedBrush}" Margin="10,2"/>
+                    <TextBlock Text="2025" FontSize="10"
+                               Foreground="{StaticResource TextMutedBrush}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Status + Progress -->
+            <Grid Grid.Row="2">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#111111" Offset="0"/>
+                        <GradientStop Color="#0A0A0A" Offset="1"/>
+                    </LinearGradientBrush>
+                </Grid.Background>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="3"/>
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="TxtStatus" Grid.Row="0"
+                           Text="Initialisation..." FontSize="11"
+                           FontFamily="{StaticResource UIFont}"
+                           Foreground="{StaticResource TextTertiaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Border Grid.Row="1" Background="#1A1A1A" CornerRadius="1.5">
+                    <Border x:Name="ProgressFill" Background="{StaticResource AccentBrush}"
+                            HorizontalAlignment="Left" Width="0" CornerRadius="1.5">
+                        <Border.Effect>
+                            <DropShadowEffect Color="{StaticResource Accent}" BlurRadius="12"
+                                              ShadowDepth="0" Opacity="0.8"/>
+                        </Border.Effect>
+                    </Border>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

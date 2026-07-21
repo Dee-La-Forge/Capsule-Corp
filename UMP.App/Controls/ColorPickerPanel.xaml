@@ -1,0 +1,186 @@
+<UserControl x:Class="UMP.App.Controls.ColorPickerPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <!-- Fond semi-transparent cliquable pour fermer -->
+    <Grid>
+        <Border Background="#80000000" MouseLeftButtonDown="Backdrop_Click"/>
+
+        <!-- Popup centree -->
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{StaticResource BgWindowBrush}" CornerRadius="10"
+                BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="1"
+                Width="320" Padding="16"
+                Effect="{DynamicResource PickerShadow}">
+            <StackPanel>
+                <!-- Header -->
+                <Grid Margin="0,0,0,12">
+                    <TextBlock Text="Couleur" Foreground="White" FontSize="14"
+                               FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Button Content="&#x2715;" HorizontalAlignment="Right"
+                            Width="24" Height="24"
+                            Background="Transparent" Foreground="{StaticResource TextSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand" FontSize="12"
+                            Click="BtnClose_Click"/>
+                </Grid>
+
+                <!-- SV square + Hue bar -->
+                <Grid Height="200" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="28"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Carre SV -->
+                    <Border Grid.Column="0" CornerRadius="6" ClipToBounds="True"
+                            BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="1">
+                        <Canvas x:Name="SvCanvas" Background="Red"
+                                MouseLeftButtonDown="SvCanvas_MouseDown"
+                                MouseMove="SvCanvas_MouseMove"
+                                MouseLeftButtonUp="SvCanvas_MouseUp">
+                            <Rectangle x:Name="SvWhite" IsHitTestVisible="False"/>
+                            <Rectangle x:Name="SvBlack" IsHitTestVisible="False"/>
+                            <Ellipse x:Name="SvCursor" Width="14" Height="14"
+                                     Stroke="White" StrokeThickness="2"
+                                     IsHitTestVisible="False">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect ShadowDepth="0" BlurRadius="4"
+                                                      Color="Black" Opacity="0.6"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Canvas>
+                    </Border>
+                    <!-- Barre Hue -->
+                    <Canvas Grid.Column="2" x:Name="HueCanvas" Width="28"
+                            Background="Transparent"
+                            MouseLeftButtonDown="HueCanvas_MouseDown"
+                            MouseMove="HueCanvas_MouseMove"
+                            MouseLeftButtonUp="HueCanvas_MouseUp">
+                        <!-- Barre spectrum -->
+                        <Rectangle x:Name="HueRect" Width="20" Canvas.Left="4"
+                                   RadiusX="4" RadiusY="4" IsHitTestVisible="False"/>
+                        <!-- Curseur -->
+                        <Border x:Name="HueCursor" Width="28" Height="8"
+                                CornerRadius="4"
+                                Background="Transparent"
+                                BorderBrush="White" BorderThickness="2"
+                                IsHitTestVisible="False">
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="0" BlurRadius="3"
+                                                  Color="Black" Opacity="0.5"/>
+                            </Border.Effect>
+                        </Border>
+                    </Canvas>
+                </Grid>
+
+                <!-- Alpha -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Opacite" Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="10" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Canvas Grid.Column="1" x:Name="AlphaCanvas" Height="20"
+                            Background="Transparent"
+                            MouseLeftButtonDown="AlphaCanvas_MouseDown"
+                            MouseMove="AlphaCanvas_MouseMove"
+                            MouseLeftButtonUp="AlphaCanvas_MouseUp">
+                        <!-- Barre de fond -->
+                        <Border Canvas.Top="7" Height="6" CornerRadius="3"
+                                Background="#252538" IsHitTestVisible="False"
+                                x:Name="AlphaTrackBg"/>
+                        <!-- Gradient -->
+                        <Rectangle x:Name="AlphaGradient" Height="6" Canvas.Top="7"
+                                   IsHitTestVisible="False" RadiusX="3" RadiusY="3"/>
+                        <!-- Curseur -->
+                        <Ellipse x:Name="AlphaCursor" Width="16" Height="16"
+                                 Fill="White" Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
+                                 IsHitTestVisible="False" Canvas.Top="2">
+                            <Ellipse.Effect>
+                                <DropShadowEffect ShadowDepth="0" BlurRadius="3"
+                                                  Color="Black" Opacity="0.4"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                    </Canvas>
+                    <TextBlock x:Name="TxtAlpha" Grid.Column="2" Text="255"
+                               Foreground="White" FontSize="11" FontFamily="Consolas"
+                               Width="30" TextAlignment="Right"
+                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </Grid>
+
+                <!-- Preview + Hex -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Damier pour montrer la transparence -->
+                    <Border Grid.Column="0" Width="40" Height="40"
+                            CornerRadius="6" ClipToBounds="True"
+                            BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="1" Margin="0,0,10,0">
+                        <Grid>
+                            <Rectangle Fill="White"/>
+                            <Rectangle>
+                                <Rectangle.Fill>
+                                    <DrawingBrush TileMode="Tile" Viewport="0,0,10,10"
+                                                  ViewportUnits="Absolute">
+                                        <DrawingBrush.Drawing>
+                                            <DrawingGroup>
+                                                <GeometryDrawing Brush="#CCC">
+                                                    <GeometryDrawing.Geometry>
+                                                        <GeometryGroup>
+                                                            <RectangleGeometry Rect="0,0,5,5"/>
+                                                            <RectangleGeometry Rect="5,5,5,5"/>
+                                                        </GeometryGroup>
+                                                    </GeometryDrawing.Geometry>
+                                                </GeometryDrawing>
+                                            </DrawingGroup>
+                                        </DrawingBrush.Drawing>
+                                    </DrawingBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <Border x:Name="ColorPreview" CornerRadius="5"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Background="{StaticResource BgDarkBrush}" CornerRadius="4"
+                            BorderBrush="{StaticResource BgBorderBrush}" BorderThickness="1">
+                        <TextBox x:Name="TxtHex"
+                                 Background="Transparent" Foreground="White"
+                                 BorderThickness="0"
+                                 Padding="10,8" FontSize="14" FontFamily="Consolas"
+                                 VerticalAlignment="Center" CaretBrush="White"
+                                 TextChanged="TxtHex_Changed"/>
+                    </Border>
+                </Grid>
+
+                <!-- Bouton valider -->
+                <Button Height="36" Cursor="Hand"
+                        Click="BtnValidate_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{StaticResource AccentBrush}" CornerRadius="6"
+                                    Padding="20,0">
+                                <TextBlock Text="Valider" Foreground="White"
+                                           FontWeight="Bold" FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentLightBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+    <UserControl.Resources>
+        <DropShadowEffect x:Key="PickerShadow" BlurRadius="30" ShadowDepth="5"
+                          Color="Black" Opacity="0.6" Direction="270"/>
+    </UserControl.Resources>
+</UserControl>

@@ -1,0 +1,30 @@
+<Window x:Class="UMP.Player.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="360" Height="180"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ShowInTaskbar="False"
+        Loaded="Window_Loaded">
+    <Border Background="#1E1E2E" CornerRadius="12"
+            BorderBrush="#2A2A40" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" ShadowDepth="4"
+                              Color="Black" Opacity="0.6"/>
+        </Border.Effect>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="CapsuleMedia" Foreground="White"
+                       FontSize="22" FontWeight="Light" FontFamily="Segoe UI"
+                       HorizontalAlignment="Center" Margin="0,0,0,8"/>
+            <TextBlock x:Name="TxtStatus" Text="Chargement..."
+                       Foreground="#888" FontSize="11" FontFamily="Segoe UI"
+                       HorizontalAlignment="Center"/>
+            <Border Background="#252538" CornerRadius="3" Height="4"
+                    Width="200" Margin="0,10,0,0">
+                <Border x:Name="ProgressBar" Background="#5C4FBF"
+                        CornerRadius="3" Height="4"
+                        HorizontalAlignment="Left" Width="40"/>
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>
