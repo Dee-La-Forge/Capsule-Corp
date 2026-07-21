@@ -14,22 +14,12 @@ public class InputBindingService : IDisposable
     /// <summary>Mode capture : quand actif, le prochain input est retourne via ce callback au lieu d'executer une action</summary>
     public Action<string>? OnBindingCaptured { get; set; }
 
-    private readonly System.Windows.Input.Key[] _boundKeys;
-    private readonly bool _hasJoystickBindings;
-
     public InputBindingService(List<PhysicalButtonConfig> buttons, Action<ButtonAction> executeAction)
     {
         _buttons = buttons;
         _executeAction = executeAction;
         _timer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(50) };
         _timer.Tick += Poll;
-        // Pre-calculer les touches bindees pour ne scanner que celles-la
-        _boundKeys = buttons
-            .Where(b => b.Binding.StartsWith("key:"))
-            .Select(b => Enum.TryParse<System.Windows.Input.Key>(b.Binding[4..], out var k) ? k : System.Windows.Input.Key.None)
-            .Where(k => k != System.Windows.Input.Key.None)
-            .Distinct().ToArray();
-        _hasJoystickBindings = buttons.Any(b => b.Binding.StartsWith("joy:"));
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -47,8 +37,20 @@ public class InputBindingService : IDisposable
     {
         try
         {
+            // Recalcule a CHAQUE scrutation : les bindings peuvent etre assignes ou
+            // modifies pendant que le service tourne (ex. touche assignee alors que
+            // l'Apercu est deja ouvert — avant, la liste etait figee a l'ouverture
+            // et la nouvelle touche n'etait jamais scannee). Liste minuscule
+            // (quelques boutons) -> cout negligeable a 20 Hz.
+            var boundKeys = _buttons
+                .Where(b => b.Binding.StartsWith("key:"))
+                .Select(b => Enum.TryParse<System.Windows.Input.Key>(b.Binding[4..], out var k) ? k : System.Windows.Input.Key.None)
+                .Where(k => k != System.Windows.Input.Key.None)
+                .Distinct().ToArray();
+            var hasJoystickBindings = _buttons.Any(b => b.Binding.StartsWith("joy:"));
+
             // Scan joystick (seulement si des bindings joystick existent)
-            if (_hasJoystickBindings || OnBindingCaptured is not null)
+            if (hasJoystickBindings || OnBindingCaptured is not null)
             {
                 var joyHit = JoystickService.ScanAllButtons();
                 if (joyHit.HasValue)
@@ -69,7 +71,7 @@ public class InputBindingService : IDisposable
             }
             else
             {
-                foreach (var key in _boundKeys)
+                foreach (var key in boundKeys)
                 {
                     var binding = $"key:{key}";
                     short state = GetAsyncKeyState(System.Windows.Input.KeyInterop.VirtualKeyFromKey(key));
