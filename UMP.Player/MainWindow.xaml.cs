@@ -78,6 +78,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            UMP.Core.Log.Error("Player : erreur au chargement du projet", ex);
             MessageBox.Show($"Erreur au chargement : {ex.Message}",
                 "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             Application.Current.Shutdown();

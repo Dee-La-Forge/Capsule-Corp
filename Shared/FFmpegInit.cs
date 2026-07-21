@@ -30,8 +30,14 @@ public static class FFmpegInit
                     FFmpegLoader.FFmpegPath = dir;
                     Available = true;
                 }
+                else
+                    UMP.Core.Log.Warn($"FFmpeg introuvable dans '{dir}' : les PiP avec alpha ne seront pas rendus");
             }
-            catch { Available = false; }
+            catch (Exception ex)
+            {
+                Available = false;
+                UMP.Core.Log.Error("FFmpegInit : echec d'initialisation", ex);
+            }
             _done = true;
         }
     }

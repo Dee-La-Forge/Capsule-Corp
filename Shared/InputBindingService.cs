@@ -98,7 +98,11 @@ public class InputBindingService : IDisposable
                 return false;
             });
         }
-        catch { /* Empecher le crash du service de polling */ }
+        catch (Exception ex)
+        {
+            // Empecher le crash du service de polling (le logger deduplique le spam)
+            UMP.Core.Log.Warn($"InputBindingService.Poll : {ex.Message}");
+        }
     }
 
     private void HandleBinding(string binding)

@@ -1003,7 +1003,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             UpdateOverlayVisibility(currentMs);
             _sequencePlayer?.Tick(currentMs);
         }
-        catch { }
+        catch (Exception ex) { UMP.Core.Log.Warn($"ZoneControl.Timer_Tick : {ex.Message}"); }
     }
 
     private void UpdateTimelineVisibility()

@@ -178,7 +178,10 @@ public partial class PlayerWindow : Window
                         RefreshOverlays();
                     }));
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    UMP.Core.Log.Warn($"Chargement image echoue '{path}' : {ex.Message}");
+                }
             });
         }
         else
@@ -215,7 +218,8 @@ public partial class PlayerWindow : Window
     private void Timer_Tick(object? sender, EventArgs e)
     {
         if (_closed) return;
-        try { Timer_TickCore(); } catch { }
+        try { Timer_TickCore(); }
+        catch (Exception ex) { UMP.Core.Log.Warn($"PlayerWindow.Timer_Tick : {ex.Message}"); }
     }
 
     private void Timer_TickCore()
@@ -368,7 +372,11 @@ public partial class PlayerWindow : Window
             _imageCache[path] = bmp;
             return bmp;
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            UMP.Core.Log.Warn($"Chargement image echoue '{path}' : {ex.Message}");
+            return null;
+        }
     }
 
     private static SolidColorBrush ParseBrush(string hex, Color fallback)
@@ -955,7 +963,7 @@ public partial class PlayerWindow : Window
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { UMP.Core.Log.Warn($"Parsing SRT echoue '{path}' : {ex.Message}"); }
         return result;
     }
 

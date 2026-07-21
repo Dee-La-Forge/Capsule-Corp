@@ -115,7 +115,11 @@ public sealed class AlphaVideoView : System.Windows.Controls.Image, IDisposable
                 if (wait > 1) Thread.Sleep((int)Math.Min(wait, 200));
             }
         }
-        catch { /* erreurs IO/decodage -> arret silencieux */ }
+        catch (Exception ex)
+        {
+            // erreurs IO/decodage -> arret du PiP, mais avec une trace pour diagnostic
+            if (!_disposed) UMP.Core.Log.Warn($"AlphaVideoView : arret decodage '{_path}' : {ex.Message}");
+        }
         finally { CloseFile(); }
     }
 
@@ -124,7 +128,11 @@ public sealed class AlphaVideoView : System.Windows.Controls.Image, IDisposable
         try
         {
             FFmpegInit.Ensure();
-            if (!FFmpegInit.Available) return false;
+            if (!FFmpegInit.Available)
+            {
+                UMP.Core.Log.Warn($"AlphaVideoView : FFmpeg indisponible, PiP '{_path}' non lu");
+                return false;
+            }
             var opts = new MediaOptions { VideoPixelFormat = ImagePixelFormat.Bgra32, StreamsToLoad = MediaMode.Video };
             lock (_gate) { _file = MediaFile.Open(_path!, opts); }
             var info = _file.Video.Info;
@@ -134,7 +142,11 @@ public sealed class AlphaVideoView : System.Windows.Controls.Image, IDisposable
             _frameMs = (fps >= 1 && fps <= 240) ? 1000.0 / fps : 40;
             return _w > 0 && _h > 0;
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            UMP.Core.Log.Warn($"AlphaVideoView : ouverture echouee '{_path}' : {ex.Message}");
+            return false;
+        }
     }
 
     private bool ReopenFile()

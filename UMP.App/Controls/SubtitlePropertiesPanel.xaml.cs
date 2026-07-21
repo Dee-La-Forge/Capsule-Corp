@@ -344,7 +344,7 @@ public partial class SubtitlePropertiesPanel : System.Windows.Controls.UserContr
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { UMP.Core.Log.Warn($"Parsing SRT echoue '{path}' : {ex.Message}"); }
         return result;
     }
 

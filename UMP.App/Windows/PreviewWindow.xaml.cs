@@ -158,7 +158,10 @@ public partial class PreviewWindow : Window
                         RefreshOverlays();
                     }));
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    UMP.Core.Log.Warn($"Chargement image echoue '{path}' : {ex.Message}");
+                }
             });
         }
         else

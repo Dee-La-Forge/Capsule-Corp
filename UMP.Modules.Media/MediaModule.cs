@@ -138,7 +138,11 @@ public class MediaModule : IDisposable
                     catch { }
                 });
         }
-        catch { /* ignore si dispose pendant switch */ }
+        catch (Exception ex)
+        {
+            // Dispose pendant un switch = benin ; tout autre echec doit laisser une trace
+            if (!_disposed) UMP.Core.Log.Warn($"MediaModule.Play echec sur '{filePath}' : {ex.Message}");
+        }
     }
 
     public void Pause() => _mediaPlayer.Pause();
@@ -187,7 +191,7 @@ public class MediaModule : IDisposable
                 _mediaPlayer.Dispose();
                 if (_ownsLibVLC) _libVLC.Dispose();
             }
-            catch { }
+            catch (Exception ex) { UMP.Core.Log.Warn($"MediaModule.Dispose : {ex.Message}"); }
         }
         GC.SuppressFinalize(this);
     }

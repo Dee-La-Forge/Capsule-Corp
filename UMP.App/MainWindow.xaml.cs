@@ -392,6 +392,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            UMP.Core.Log.Error($"QuickSave echec ({_lastSavePath})", ex);
             System.Windows.MessageBox.Show($"Erreur de sauvegarde :\n{ex.Message}",
                 "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -437,6 +438,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            UMP.Core.Log.Error($"Sauvegarde echec ({_lastSavePath})", ex);
             System.Windows.MessageBox.Show($"Erreur :\n{ex.Message}");
         }
     }
@@ -500,6 +502,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            UMP.Core.Log.Error($"Chargement projet echec ({filePath})", ex);
             System.Windows.MessageBox.Show($"Erreur : {ex.Message}");
         }
         finally { IsEnabled = true; LoaderOverlay.Visibility = Visibility.Collapsed; }
@@ -536,6 +539,7 @@ public partial class MainWindow : Window
     {
         try
         {
+            UMP.Core.Log.Info($"Export demarre vers {outputDir}");
             var mediaDir = Path.Combine(outputDir, "media");
             Directory.CreateDirectory(mediaDir);
 
@@ -849,14 +853,21 @@ public partial class MainWindow : Window
                 $"Lancez CapsuleMedia.Player.exe pour lire le projet.";
 
             if (problems.Count > 0)
+            {
+                UMP.Core.Log.Warn($"Export INCOMPLET vers {outputDir} :\n" + string.Join("\n", problems));
                 ew.Finish(false,
                     "EXPORT INCOMPLET — le projet risque de ne pas fonctionner sur la machine cible.\n\n"
                     + string.Join("\n", problems) + "\n\n" + summary);
+            }
             else
+            {
+                UMP.Core.Log.Info($"Export OK vers {outputDir} ({uniquePaths.Count} media(s), {totalSize:F1} Mo)");
                 ew.Finish(true, summary);
+            }
         }
         catch (Exception ex)
         {
+            UMP.Core.Log.Error($"Export echec vers {outputDir}", ex);
             ew.Finish(false, $"Erreur : {ex.Message}");
         }
     }
