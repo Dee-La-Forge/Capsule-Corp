@@ -655,8 +655,13 @@ public partial class MainWindow : Window
 
             File.WriteAllText(Path.Combine(outputDir, "project.json"), JsonSerializer.Serialize(clone, jsonOpts));
 
-            // Build du Player
-            ew.SetProgress(75, "Compilation du Player...", "dotnet publish (self-contained)");
+            // ===== Player : bundle pre-publie =====
+            // Priorite 1 : dossier "player" livre a cote de CapsuleMedia.exe
+            //   (produit par `dotnet publish UMP.App` — cible PublishPlayer du csproj).
+            //   Une machine de production n'a ainsi besoin ni des sources ni du SDK .NET.
+            // Priorite 2 : machine de developpement — cache UMP.Player/bin/publish,
+            //   recompile via dotnet publish si les sources sont plus recentes.
+            ew.SetProgress(75, "Recherche du Player...");
 
             var appBase = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
             var solRoot = appBase;
@@ -668,118 +673,118 @@ public partial class MainWindow : Window
                 if (Directory.Exists(Path.Combine(solRoot, "UMP.Player"))) break;
             }
 
-            var playerProj = Path.Combine(solRoot, "UMP.Player");
-            // Fallback : chercher dans le dossier du projet sauvegardé
-            if (!Directory.Exists(playerProj) && !string.IsNullOrEmpty(_lastSavePath))
+            string? playerBundle = null;
+            var deployedBundle = Path.Combine(AppContext.BaseDirectory, "player");
+            if (File.Exists(Path.Combine(deployedBundle, "CapsuleMedia.Player.exe")))
             {
-                var saveDir = Path.GetDirectoryName(_lastSavePath);
-                if (saveDir is not null)
-                {
-                    var candidate = saveDir;
-                    for (int i = 0; i < 5; i++)
-                    {
-                        if (Directory.Exists(Path.Combine(candidate, "UMP.Player")))
-                        { playerProj = Path.Combine(candidate, "UMP.Player"); break; }
-                        var p = Path.GetDirectoryName(candidate);
-                        if (p is null) break;
-                        candidate = p;
-                    }
-                }
-            }
-            if (!Directory.Exists(playerProj))
-            {
-                ew.Finish(false, $"Projet UMP.Player introuvable.\nLes medias et project.json ont ete exportes dans :\n{outputDir}");
-                return;
-            }
-
-            // Verifier si un build existe deja et s'il est a jour
-            var cachedExe = Path.Combine(solRoot, "UMP.Player", "bin", "publish", "CapsuleMedia.Player.exe");
-            var cachedDir = Path.Combine(solRoot, "UMP.Player", "bin", "publish");
-            var needBuild = !File.Exists(cachedExe);
-            if (!needBuild)
-            {
-                // Rebuild si un fichier source est plus recent que l'exe
-                var exeDate = File.GetLastWriteTimeUtc(cachedExe);
-                var srcDirs = new[] { "UMP.Player", "UMP.Core", "UMP.Modules.Media", "Shared" };
-                foreach (var dir in srcDirs)
-                {
-                    var dirPath = Path.Combine(solRoot, dir);
-                    if (!Directory.Exists(dirPath)) continue;
-                    foreach (var src in Directory.EnumerateFiles(dirPath, "*.cs", SearchOption.AllDirectories))
-                        if (File.GetLastWriteTimeUtc(src) > exeDate) { needBuild = true; break; }
-                    if (needBuild) break;
-                    foreach (var src in Directory.EnumerateFiles(dirPath, "*.xaml", SearchOption.AllDirectories))
-                        if (File.GetLastWriteTimeUtc(src) > exeDate) { needBuild = true; break; }
-                    if (needBuild) break;
-                }
-            }
-
-            if (needBuild)
-            {
-                ew.SetProgress(78, "Compilation du Player...", "Premier build, cela peut prendre 1-2 minutes...");
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = $"publish \"{playerProj}\" -c Release -o \"{cachedDir}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    WorkingDirectory = solRoot
-                };
-                var process = Process.Start(psi);
-                if (process is not null)
-                {
-                    process.WaitForExit();
-                    if (process.ExitCode != 0)
-                    {
-                        var stderr = process.StandardError.ReadToEnd();
-                        ew.Finish(false, $"Erreur de build (code {process.ExitCode}).\n{stderr}");
-                        return;
-                    }
-                }
-            }
-
-            // Copier l'exe depuis le cache
-            ew.SetProgress(88, "Copie du Player...");
-            if (File.Exists(cachedExe))
-            {
-                try { File.Copy(cachedExe, Path.Combine(outputDir, "CapsuleMedia.Player.exe"), true); }
-                catch { }
+                playerBundle = deployedBundle;
             }
             else
+            {
+                var playerProj = Path.Combine(solRoot, "UMP.Player");
+                // Fallback : chercher dans le dossier du projet sauvegardé
+                if (!Directory.Exists(playerProj) && !string.IsNullOrEmpty(_lastSavePath))
+                {
+                    var saveDir = Path.GetDirectoryName(_lastSavePath);
+                    if (saveDir is not null)
+                    {
+                        var candidate = saveDir;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            if (Directory.Exists(Path.Combine(candidate, "UMP.Player")))
+                            { playerProj = Path.Combine(candidate, "UMP.Player"); break; }
+                            var p = Path.GetDirectoryName(candidate);
+                            if (p is null) break;
+                            candidate = p;
+                        }
+                    }
+                }
+                if (!Directory.Exists(playerProj))
+                {
+                    ew.Finish(false,
+                        "Player introuvable :\n" +
+                        "• pas de dossier 'player' a cote de CapsuleMedia.exe (installation deployee)\n" +
+                        "• pas de sources UMP.Player (machine de developpement)\n\n" +
+                        $"Les medias et project.json ont ete exportes dans :\n{outputDir}");
+                    return;
+                }
+
+                // Verifier si un build existe deja et s'il est a jour
+                var cachedDir = Path.Combine(playerProj, "bin", "publish");
+                var cachedExe = Path.Combine(cachedDir, "CapsuleMedia.Player.exe");
+                var needBuild = !File.Exists(cachedExe);
+                if (!needBuild)
+                {
+                    // Rebuild si un fichier source est plus recent que l'exe
+                    var exeDate = File.GetLastWriteTimeUtc(cachedExe);
+                    var srcDirs = new[] { "UMP.Player", "UMP.Core", "UMP.Modules.Media", "Shared" };
+                    foreach (var dir in srcDirs)
+                    {
+                        var dirPath = Path.Combine(solRoot, dir);
+                        if (!Directory.Exists(dirPath)) continue;
+                        foreach (var src in Directory.EnumerateFiles(dirPath, "*.cs", SearchOption.AllDirectories))
+                            if (File.GetLastWriteTimeUtc(src) > exeDate) { needBuild = true; break; }
+                        if (needBuild) break;
+                        foreach (var src in Directory.EnumerateFiles(dirPath, "*.xaml", SearchOption.AllDirectories))
+                            if (File.GetLastWriteTimeUtc(src) > exeDate) { needBuild = true; break; }
+                        if (needBuild) break;
+                    }
+                }
+
+                if (needBuild)
+                {
+                    ew.SetProgress(78, "Compilation du Player...", "Premier build, cela peut prendre 1-2 minutes...");
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "dotnet",
+                        Arguments = $"publish \"{playerProj}\" -c Release -o \"{cachedDir}\"",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WorkingDirectory = solRoot
+                    };
+                    var process = Process.Start(psi);
+                    if (process is not null)
+                    {
+                        process.WaitForExit();
+                        if (process.ExitCode != 0)
+                        {
+                            var stderr = process.StandardError.ReadToEnd();
+                            ew.Finish(false, $"Erreur de build (code {process.ExitCode}).\n{stderr}");
+                            return;
+                        }
+                    }
+                }
+                playerBundle = cachedDir;
+            }
+
+            // Copier le bundle Player complet (exe + libvlc + ffmpeg)
+            ew.SetProgress(88, "Copie du Player...");
+            if (!File.Exists(Path.Combine(playerBundle, "CapsuleMedia.Player.exe")))
             {
                 ew.Finish(false, "Executable Player introuvable apres le build.");
                 return;
             }
+            CopyDirectory(playerBundle, outputDir);
 
-            // Copier les DLLs LibVLC natives
-            ew.SetProgress(92, "Copie des librairies LibVLC...");
-            var libvlcSrc = Path.Combine(playerProj, "bin", "Debug", "net8.0-windows", "libvlc");
-            if (!Directory.Exists(libvlcSrc))
-                libvlcSrc = Path.Combine(playerProj, "bin", "Release", "net8.0-windows", "win-x64", "libvlc");
-            if (!Directory.Exists(libvlcSrc))
+            // Filets de securite : si le bundle ne contenait pas libvlc/ffmpeg,
+            // les recuperer depuis l'installation de l'App (son output les contient).
+            ew.SetProgress(92, "Verification LibVLC / FFmpeg...");
+            if (!Directory.Exists(Path.Combine(outputDir, "libvlc")))
             {
-                // Chercher dans le dossier d'export (publish peut les copier)
-                var pubLibvlc = Path.Combine(outputDir, "libvlc");
-                if (!Directory.Exists(pubLibvlc))
-                {
-                    // Chercher dans le build debug de l'App
-                    var appLibvlc = Path.Combine(AppContext.BaseDirectory, "libvlc");
-                    if (Directory.Exists(appLibvlc)) libvlcSrc = appLibvlc;
-                }
+                var appLibvlc = Path.Combine(AppContext.BaseDirectory, "libvlc");
+                if (Directory.Exists(appLibvlc))
+                    CopyDirectory(appLibvlc, Path.Combine(outputDir, "libvlc"));
             }
-            if (Directory.Exists(libvlcSrc))
+            if (!Directory.Exists(Path.Combine(outputDir, "ffmpeg")))
             {
-                var libvlcDest = Path.Combine(outputDir, "libvlc");
-                CopyDirectory(libvlcSrc, libvlcDest);
+                var ffmpegSrc = Directory.Exists(Path.Combine(solRoot, "ffmpeg"))
+                    ? Path.Combine(solRoot, "ffmpeg")
+                    : Path.Combine(AppContext.BaseDirectory, "ffmpeg");
+                if (Directory.Exists(ffmpegSrc))
+                    CopyDirectory(ffmpegSrc, Path.Combine(outputDir, "ffmpeg"));
             }
-
-            // Copier les DLLs FFmpeg (decodage PiP avec alpha)
-            ew.SetProgress(94, "Copie de FFmpeg...");
-            var ffmpegSrc = Path.Combine(solRoot, "ffmpeg");
-            if (Directory.Exists(ffmpegSrc))
-                CopyDirectory(ffmpegSrc, Path.Combine(outputDir, "ffmpeg"));
 
             ew.SetProgress(95, "Nettoyage...");
             // Supprimer les fichiers inutiles (pdb, xml doc, etc.)
@@ -791,6 +796,10 @@ public partial class MainWindow : Window
                 try { File.Delete(deps); } catch { }
             foreach (var runtimeConfig in Directory.GetFiles(outputDir, "*.runtimeconfig.json", SearchOption.TopDirectoryOnly))
                 try { File.Delete(runtimeConfig); } catch { }
+            // Le Player est win-x64 : la variante win-x86 de LibVLC (~100 Mo) est inutile
+            var x86Dir = Path.Combine(outputDir, "libvlc", "win-x86");
+            if (Directory.Exists(x86Dir))
+                try { Directory.Delete(x86Dir, true); } catch { }
             // Supprimer les plugins LibVLC inutiles pour reduire la taille
             var unusedPlugins = new[] { "access_output", "lua", "meta_engine",
                 "mux", "services_discovery", "spu", "stream_out", "video_filter",

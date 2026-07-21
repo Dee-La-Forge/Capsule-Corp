@@ -42,4 +42,12 @@
     <Resource Include="Assets\loader.png" />
   </ItemGroup>
 
+  <!-- Publie le Player self-contained dans le sous-dossier "player" du publish de l'App.
+       L'export en production copie ce bundle tel quel : la machine cible n'a besoin
+       ni des sources ni du SDK .NET (RunExport, priorite 1). -->
+  <Target Name="PublishPlayer" AfterTargets="Publish">
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\UMP.Player\UMP.Player.csproj&quot; -c Release -o &quot;$(PublishDir)player&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)\.." />
+  </Target>
+
 </Project>
