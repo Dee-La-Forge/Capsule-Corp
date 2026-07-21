@@ -281,8 +281,13 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
 
         var left = Canvas.GetLeft(selBorder);
         var top = Canvas.GetTop(selBorder);
-        var w = selBorder.Width;
-        var h = selBorder.Height;
+        // Width/Height peuvent etre NaN (ex. sous-titre : hauteur auto) ->
+        // retomber sur les dimensions mesurees pour ne pas propager NaN
+        // dans le cadre de selection (crash de la passe de layout WPF).
+        var w = double.IsFinite(selBorder.Width) ? selBorder.Width : selBorder.ActualWidth;
+        var h = double.IsFinite(selBorder.Height) ? selBorder.Height : selBorder.ActualHeight;
+        if (!double.IsFinite(left) || !double.IsFinite(top)
+            || !double.IsFinite(w) || !double.IsFinite(h)) return;
 
         // Cadre de selection — rectangle en pointilles
         var selRect = new System.Windows.Shapes.Rectangle
@@ -1838,8 +1843,11 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             if (el is Border b && b.Tag is ButtonConfig btn)
             {
                 MigrateButtonIfNeeded(btn);
-                var bw = btn.Width * rw;
-                var bh = btn.Height * rh;
+                // SafeSize obligatoire : lors d'un redimensionnement de fenetre,
+                // rw/rh peuvent devenir minuscules -> largeur < 1 px -> DesiredSize
+                // NaN sur un Border a TextBlock wrappant -> crash de layout WPF.
+                var bw = SafeSize(btn.Width * rw);
+                var bh = SafeSize(btn.Height * rh);
                 b.Width = bw;
                 b.Height = bh;
                 b.CornerRadius = new CornerRadius(btn.CornerRadius * Math.Min(bw, bh));
@@ -1852,8 +1860,8 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             }
             else if (el is Border ib && ib.Tag is ImageOverlayConfig img)
             {
-                var iw = img.Width * rw;
-                var ih = img.Height * rh;
+                var iw = SafeSize(img.Width * rw);
+                var ih = SafeSize(img.Height * rh);
                 ib.Width = iw; ib.Height = ih;
                 ib.CornerRadius = new CornerRadius(img.CornerRadius * Math.Min(iw, ih));
                 Canvas.SetLeft(ib, ox + img.X * rw);
@@ -1861,7 +1869,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             }
             else if (el is Border sb && sb.Tag is SubtitleConfig sub)
             {
-                sb.Width = sub.Width * rw;
+                sb.Width = SafeSize(sub.Width * rw);
                 Canvas.SetLeft(sb, ox + sub.X * rw);
                 Canvas.SetTop(sb, oy + sub.Y * rh);
                 var fontScale2 = rh / 1080.0;
@@ -1870,8 +1878,8 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             }
             else if (el is Border pb && pb.Tag is PipConfig pip)
             {
-                pb.Width = pip.Width * rw;
-                pb.Height = pip.Height * rh;
+                pb.Width = SafeSize(pip.Width * rw);
+                pb.Height = SafeSize(pip.Height * rh);
                 pb.CornerRadius = new CornerRadius(pip.CornerRadius * Math.Min(pb.Width, pb.Height));
                 Canvas.SetLeft(pb, ox + pip.X * rw);
                 Canvas.SetTop(pb, oy + pip.Y * rh);
