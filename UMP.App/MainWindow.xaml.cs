@@ -948,40 +948,8 @@ public partial class MainWindow : Window
     }
 
     private void ExecutePreviewAction(ButtonAction action)
-    {
-        switch (action.Type)
-        {
-            case ButtonActionType.StopAllScreens:
-                Windows.PreviewWindow.InvokeStopAllScreens();
-                break;
-            case ButtonActionType.JumpToItemAllScreens:
-                if (action.TargetItemIndex.HasValue)
-                    Windows.PreviewWindow.InvokeJumpToItemAllScreens(
-                        action.TargetItemIndex.Value,
-                        action.EndItemIndex ?? action.TargetItemIndex.Value);
-                break;
-            case ButtonActionType.TogglePip:
-            case ButtonActionType.ShowPip:
-            case ButtonActionType.HidePip:
-                // ZoneId defini -> seulement la fenetre de cette zone ;
-                // sinon diffuser a toutes (le PiP peut etre sur n'importe quel ecran).
-                foreach (var w in _previewWindows)
-                    if (string.IsNullOrEmpty(action.ZoneId) || w.ZoneId == action.ZoneId)
-                        w.ExecuteActionPublic(action);
-                break;
-            default:
-                // Actions per-zone : ZoneId defini -> fenetre de la zone cible ;
-                // sinon premiere fenetre (compatibilite anciens projets).
-                var target = !string.IsNullOrEmpty(action.ZoneId)
-                    ? _previewWindows.FirstOrDefault(w => w.ZoneId == action.ZoneId)
-                    : _previewWindows.FirstOrDefault();
-                if (target is null)
-                    UMP.Core.Log.Warn($"Bouton physique {action.Type} : zone cible '{action.ZoneId}' introuvable");
-                else
-                    target.ExecuteActionPublic(action);
-                break;
-        }
-    }
+        // Routage global/PiP/per-zone centralise dans le moteur partage
+        => ZonePlaybackView.DispatchGlobalAction(action);
 
     private bool _closingPreviews;
 

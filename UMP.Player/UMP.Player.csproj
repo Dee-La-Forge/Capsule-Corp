@@ -38,6 +38,8 @@
     <Compile Include="..\Shared\InputBindingService.cs" Link="Shared\InputBindingService.cs" />
     <Compile Include="..\Shared\FFmpegInit.cs" Link="Shared\FFmpegInit.cs" />
     <Compile Include="..\Shared\AlphaVideoView.cs" Link="Shared\AlphaVideoView.cs" />
+    <Compile Include="..\Shared\RenderHelpers.cs" Link="Shared\RenderHelpers.cs" />
+    <Compile Include="..\Shared\ZonePlaybackView.cs" Link="Shared\ZonePlaybackView.cs" />
   </ItemGroup>
 
   <!-- DLLs FFmpeg (decodage PiP alpha) copiees dans le sous-dossier ffmpeg/ a cote de l'exe -->

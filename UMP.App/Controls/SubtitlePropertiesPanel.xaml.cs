@@ -309,48 +309,7 @@ public partial class SubtitlePropertiesPanel : System.Windows.Controls.UserContr
     private void OnColorPickerClose()
     { ColorPicker.Visibility = Visibility.Collapsed; _colorTarget = null; }
 
-    // SRT parser
+    // SRT parser — delegue au parseur unique de UMP.Core
     public static List<SubtitleEntry> ParseSrtFile(string path)
-    {
-        var result = new List<SubtitleEntry>();
-        try
-        {
-            var lines = System.IO.File.ReadAllLines(path, System.Text.Encoding.UTF8);
-            int i = 0;
-            while (i < lines.Length)
-            {
-                if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
-                if (int.TryParse(lines[i].Trim(), out _)) { i++; continue; }
-                var tsLine = lines[i].Trim();
-                if (!tsLine.Contains("-->")) { i++; continue; }
-                i++;
-                var parts = tsLine.Split("-->");
-                if (parts.Length < 2) continue;
-
-                var textLines = new System.Collections.Generic.List<string>();
-                while (i < lines.Length && !string.IsNullOrWhiteSpace(lines[i]))
-                { textLines.Add(lines[i].Trim()); i++; }
-
-                if (textLines.Count > 0)
-                {
-                    var text = string.Join("\n", textLines);
-                    text = System.Text.RegularExpressions.Regex.Replace(text, "<[^>]+>", "");
-                    result.Add(new SubtitleEntry
-                    {
-                        Text = text,
-                        InMs = ParseSrtTs(parts[0].Trim()),
-                        OutMs = ParseSrtTs(parts[1].Trim())
-                    });
-                }
-            }
-        }
-        catch (Exception ex) { UMP.Core.Log.Warn($"Parsing SRT echoue '{path}' : {ex.Message}"); }
-        return result;
-    }
-
-    private static long ParseSrtTs(string ts)
-    {
-        ts = ts.Replace(',', '.');
-        return TimeSpan.TryParse(ts, out var t) ? (long)t.TotalMilliseconds : 0;
-    }
+        => UMP.Core.Services.SrtParser.Parse(path);
 }
