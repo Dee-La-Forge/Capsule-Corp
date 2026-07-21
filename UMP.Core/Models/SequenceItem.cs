@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json.Serialization;
 
 namespace UMP.Core.Models;
 
@@ -20,11 +21,13 @@ public class SequenceItem
     /// <summary>Si true, cet item se rejoue indefiniment</summary>
     public bool IsLooping { get; set; } = false;
 
-    public bool IsImageSlide => !string.IsNullOrEmpty(ImageSlidePath);
-    public bool IsVideo => !string.IsNullOrEmpty(MediaPath)
+    // Proprietes calculees — exclues de la serialisation : leur valeur figee a la
+    // sauvegarde etait trompeuse (ex. "HasValidMedia": true sans garantie actuelle).
+    [JsonIgnore] public bool IsImageSlide => !string.IsNullOrEmpty(ImageSlidePath);
+    [JsonIgnore] public bool IsVideo => !string.IsNullOrEmpty(MediaPath)
                           && string.IsNullOrEmpty(ImageSlidePath);
-    public bool HasValidMedia => IsImageSlide
+    [JsonIgnore] public bool HasValidMedia => IsImageSlide
         ? File.Exists(ImageSlidePath)
         : !string.IsNullOrEmpty(MediaPath) && File.Exists(MediaPath);
-    public string? EffectivePath => IsImageSlide ? ImageSlidePath : MediaPath;
+    [JsonIgnore] public string? EffectivePath => IsImageSlide ? ImageSlidePath : MediaPath;
 }

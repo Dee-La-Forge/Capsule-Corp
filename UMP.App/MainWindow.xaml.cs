@@ -552,29 +552,12 @@ public partial class MainWindow : Window
                 project = _projectService.CurrentProject;
             });
 
-            // Collecter les fichiers
+            // Collecter les fichiers — parcours generique de TOUS les chemins du
+            // projet (corrige l'oubli des MediaPath des actions de boutons overlay).
             ew.SetProgress(10, "Collecte des fichiers media...");
             var pathMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var allPaths = new List<string?>();
-
-            foreach (var zone in project.Zones)
-            {
-                allPaths.Add(zone.MediaFilePath);
-                if (zone.Sequence is null) continue;
-                foreach (var item in zone.Sequence.Items)
-                {
-                    allPaths.Add(item.MediaPath);
-                    allPaths.Add(item.ImageSlidePath);
-                    foreach (var btn in item.Buttons) { allPaths.Add(btn.ImagePath); allPaths.Add(btn.ImagePathOn); allPaths.Add(btn.CustomFontPath); }
-                    foreach (var img in item.ImageOverlays) allPaths.Add(img.ImagePath);
-                    foreach (var sub in item.Subtitles) { allPaths.Add(sub.FilePath); allPaths.Add(sub.CustomFontPath); }
-                    foreach (var pip in item.PictureInPictures) allPaths.Add(pip.VideoPath);
-                }
-            }
-            // Boutons physiques — collecter les MediaPath des actions
-            foreach (var pb in project.PhysicalButtons)
-                foreach (var a in pb.Actions)
-                    allPaths.Add(a.MediaPath);
+            UMP.Core.Services.ProjectPaths.Transform(project, p => { allPaths.Add(p); return p; });
 
             // Fichiers references par le projet mais introuvables sur le disque :
             // impossibles a copier, leurs chemins resteront absolus dans project.json
@@ -630,32 +613,14 @@ public partial class MainWindow : Window
                 pathMap[path] = "media/" + fileName;
             }
 
-            // Remapper les chemins
+            // Remapper les chemins — meme parcours generique que la collecte
             ew.SetProgress(72, "Generation du project.json...");
-            string Remap(string? p) => !string.IsNullOrEmpty(p) && pathMap.TryGetValue(p, out var rel) ? rel : p ?? "";
+            string? Remap(string? p) => !string.IsNullOrEmpty(p) && pathMap.TryGetValue(p, out var rel) ? rel : p;
 
             var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
             var cloneJson = JsonSerializer.Serialize(project, jsonOpts);
             var clone = JsonSerializer.Deserialize<Project>(cloneJson, jsonOpts)!;
-
-            foreach (var zone in clone.Zones)
-            {
-                zone.MediaFilePath = Remap(zone.MediaFilePath);
-                if (zone.Sequence is null) continue;
-                foreach (var item in zone.Sequence.Items)
-                {
-                    item.MediaPath = Remap(item.MediaPath);
-                    item.ImageSlidePath = Remap(item.ImageSlidePath);
-                    foreach (var btn in item.Buttons) { btn.ImagePath = Remap(btn.ImagePath); btn.ImagePathOn = Remap(btn.ImagePathOn); btn.CustomFontPath = Remap(btn.CustomFontPath); }
-                    foreach (var img in item.ImageOverlays) img.ImagePath = Remap(img.ImagePath);
-                    foreach (var sub in item.Subtitles) { sub.FilePath = Remap(sub.FilePath); sub.CustomFontPath = Remap(sub.CustomFontPath); }
-                    foreach (var pip in item.PictureInPictures) pip.VideoPath = Remap(pip.VideoPath);
-                }
-            }
-            // Remapper les MediaPath des boutons physiques
-            foreach (var pb in clone.PhysicalButtons)
-                foreach (var a in pb.Actions)
-                    a.MediaPath = Remap(a.MediaPath);
+            UMP.Core.Services.ProjectPaths.Transform(clone, Remap);
 
             File.WriteAllText(Path.Combine(outputDir, "project.json"), JsonSerializer.Serialize(clone, jsonOpts));
 
