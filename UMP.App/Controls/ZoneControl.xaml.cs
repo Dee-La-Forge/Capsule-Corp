@@ -881,13 +881,9 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
                 _zone.Sequence.Items.Add(new UMP.Core.Models.SequenceItem { MediaPath = file });
         }
 
-        // Ouvrir le panneau sequence si pas deja ouvert
+        // Ouvrir le panneau sequence si pas deja ouvert (cablage complet)
         if (SeqPanel.Visibility == Visibility.Collapsed)
-        {
-            SeqPanel.Visibility = Visibility.Visible;
-            ColSequence.Width = new System.Windows.GridLength(420);
-            SeqPanel.Initialize(_zone, GetCurrentMs);
-        }
+            OpenSequencePanel();
         else
             SeqPanel.RefreshItems();
 
@@ -1122,7 +1118,11 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
     // ===== HANDLERS =====
 
     private void TxtZoneName_TextChanged(object s, TextChangedEventArgs e)
-    { if (_zone is not null) _zone.Name = TxtZoneName.Text; }
+    {
+        if (_zone is null || _zone.Name == TxtZoneName.Text) return;
+        _zone.Name = TxtZoneName.Text;
+        if (!_isInitializing) BeforeModification?.Invoke();
+    }
 
     private void BtnOpen_Click(object sender, RoutedEventArgs e)
     {
@@ -1133,6 +1133,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
 
         _lastFilePath = d.FileName;
         if (_zone is not null) _zone.MediaFilePath = _lastFilePath;
+        BeforeModification?.Invoke();
 
         if (_zone?.Sequence is not null && _zone.Sequence.Items.Count > 0)
         {
@@ -1261,6 +1262,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
         ActiveSetVolume(vol);
         if (!_isMuted) _zone.Volume = vol;
         if (TxtVolume is not null) TxtVolume.Text = vol.ToString();
+        if (!_isInitializing) BeforeModification?.Invoke();
     }
 
     private void BtnMute_Click(object s, RoutedEventArgs e)
@@ -1268,6 +1270,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
         if (_isInitializing || _mediaModule is null) return;
         _isMuted = !_isMuted;
         if (_zone is not null) _zone.IsMuted = _isMuted;
+        BeforeModification?.Invoke();
         if (_isMuted)
         {
             _lastVolume = (int)VolumeSlider.Value;
@@ -1284,9 +1287,9 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
     }
 
     private void ChkLoop_Checked(object s, RoutedEventArgs e)
-    { if (!_isInitializing && _mediaModule is not null) { _mediaModule.IsLooping = true; if (_zone is not null) _zone.IsLooping = true; } }
+    { if (!_isInitializing && _mediaModule is not null) { _mediaModule.IsLooping = true; if (_zone is not null) _zone.IsLooping = true; BeforeModification?.Invoke(); } }
     private void ChkLoop_Unchecked(object s, RoutedEventArgs e)
-    { if (!_isInitializing && _mediaModule is not null) { _mediaModule.IsLooping = false; if (_zone is not null) _zone.IsLooping = false; } }
+    { if (!_isInitializing && _mediaModule is not null) { _mediaModule.IsLooping = false; if (_zone is not null) _zone.IsLooping = false; BeforeModification?.Invoke(); } }
     private void BtnScreen_Click(object sender, RoutedEventArgs e)
     {
         var screens = System.Windows.Forms.Screen.AllScreens;
@@ -1306,6 +1309,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
                 {
                     _zone.ScreenIndex = idx;
                     _zone.ScreenDeviceName = screens[idx].DeviceName;
+                    BeforeModification?.Invoke();
                 }
                 UpdateScreenLabel(idx, screens);
                 ScreenChanged?.Invoke();
@@ -1431,8 +1435,12 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
 
     private void PushPropsSnapshot()
     {
-        // Marquer comme dirty — le snapshot sera pousse a la fermeture du panneau
+        // Marquer comme dirty — le snapshot sera pousse a la fermeture du panneau.
+        // BeforeModification marque le projet non sauvegarde IMMEDIATEMENT :
+        // sans ca, editer des proprietes panneau ouvert puis fermer l'appli
+        // ne declenchait aucun prompt de sauvegarde.
         _propsDirty = true;
+        BeforeModification?.Invoke();
     }
 
     private void FinalizePropsSnapshot()
@@ -1710,7 +1718,18 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
     private void BtnSequence_Click(object sender, RoutedEventArgs e)
     {
         if (SeqPanel.Visibility == Visibility.Collapsed)
-        {
+            OpenSequencePanel();
+        else
+        { SeqPanel.Visibility = Visibility.Collapsed; ColSequence.Width = new System.Windows.GridLength(0); }
+    }
+
+    /// <summary>
+    /// Ouvre le panneau sequence avec TOUT le cablage (callbacks + events).
+    /// Utilise par le bouton Sequence ET le drag&drop : un panneau ouvert
+    /// par drop n'avait auparavant ni undo, ni selection, ni SequenceChanged.
+    /// </summary>
+    private void OpenSequencePanel()
+    {
             SeqPanel.Visibility = Visibility.Visible;
             ColSequence.Width = new System.Windows.GridLength(420);
             SeqPanel.Initialize(_zone!, GetCurrentMs);
@@ -1762,6 +1781,7 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
                     var isImg = ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif";
                     if (isImg) { item.ImageSlidePath = d.FileName; item.MediaPath = null; }
                     else { item.MediaPath = d.FileName; item.ImageSlidePath = null; }
+                    BeforeModification?.Invoke();
 
                     // Rafraichir la liste d'abord
                     SeqPanel.RefreshItems();
@@ -1780,9 +1800,6 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
                     VideoLoaded?.Invoke();
                 };
             }
-        }
-        else
-        { SeqPanel.Visibility = Visibility.Collapsed; ColSequence.Width = new System.Windows.GridLength(0); }
     }
 
 

@@ -400,6 +400,10 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender,
         System.ComponentModel.CancelEventArgs e)
     {
+        // Finaliser les editions en cours (panneau de proprietes ouvert,
+        // deplacement clavier non commite) AVANT de tester _hasUnsavedChanges,
+        // sinon ces modifications sont perdues sans prompt.
+        _activeControl?.FinalizeAllPending();
         if (_hasUnsavedChanges)
         {
             var r = System.Windows.MessageBox.Show("Sauvegarder avant de quitter ?",
@@ -568,6 +572,16 @@ public partial class MainWindow : Window
                 foreach (var a in pb.Actions)
                     allPaths.Add(a.MediaPath);
 
+            // Fichiers references par le projet mais introuvables sur le disque :
+            // impossibles a copier, leurs chemins resteront absolus dans project.json
+            // → le Player ne les trouvera pas sur la machine cible. A signaler.
+            var missingFiles = allPaths
+                .Where(p => !string.IsNullOrEmpty(p) && !File.Exists(p))
+                .Select(p => p!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var copyErrors = new List<string>();
+
             // Copie des fichiers
             var uniquePaths = allPaths.Where(p => !string.IsNullOrEmpty(p) && File.Exists(p)).Distinct().ToList();
             for (int i = 0; i < uniquePaths.Count; i++)
@@ -601,7 +615,14 @@ public partial class MainWindow : Window
                     fileName = $"{name}_{n}{ext}";
                     dest = Path.Combine(mediaDir, fileName);
                 }
-                try { File.Copy(path, dest, true); } catch { }
+                // Une copie echouee ne doit PAS etre mappee : sinon project.json
+                // pointe vers un fichier media/ inexistant sans que rien ne le signale.
+                try { File.Copy(path, dest, true); }
+                catch (Exception copyEx)
+                {
+                    copyErrors.Add($"{fileName} : {copyEx.Message}");
+                    continue;
+                }
                 pathMap[path] = "media/" + fileName;
             }
 
@@ -796,11 +817,34 @@ public partial class MainWindow : Window
             var totalSize = new DirectoryInfo(outputDir).EnumerateFiles("*", SearchOption.AllDirectories)
                 .Sum(f => f.Length) / (1024.0 * 1024.0);
 
-            ew.Finish(true,
-                $"{uniquePaths.Count} fichier(s) media copies\n" +
+            // Rapport final : ne jamais annoncer un succes si des medias manquent
+            // ou si des copies ont echoue — la panne se decouvrirait sur site.
+            var problems = new List<string>();
+            if (missingFiles.Count > 0)
+            {
+                problems.Add($"{missingFiles.Count} media(s) INTROUVABLE(S) :");
+                problems.AddRange(missingFiles.Take(8).Select(p => "  • " + p));
+                if (missingFiles.Count > 8) problems.Add($"  ... et {missingFiles.Count - 8} autre(s)");
+            }
+            if (copyErrors.Count > 0)
+            {
+                problems.Add($"{copyErrors.Count} copie(s) echouee(s) :");
+                problems.AddRange(copyErrors.Take(8).Select(p => "  • " + p));
+                if (copyErrors.Count > 8) problems.Add($"  ... et {copyErrors.Count - 8} autre(s)");
+            }
+
+            var summary =
+                $"{uniquePaths.Count - copyErrors.Count} fichier(s) media copies\n" +
                 $"Taille totale : {totalSize:F1} Mo\n" +
                 $"Dossier : {outputDir}\n\n" +
-                $"Lancez CapsuleMedia.Player.exe pour lire le projet.");
+                $"Lancez CapsuleMedia.Player.exe pour lire le projet.";
+
+            if (problems.Count > 0)
+                ew.Finish(false,
+                    "EXPORT INCOMPLET — le projet risque de ne pas fonctionner sur la machine cible.\n\n"
+                    + string.Join("\n", problems) + "\n\n" + summary);
+            else
+                ew.Finish(true, summary);
         }
         catch (Exception ex)
         {
@@ -829,8 +873,12 @@ public partial class MainWindow : Window
             return;
         }
         PhysicalBtnsPanel.CloseRequested -= HidePhysicalBtnsPanel;
+        PhysicalBtnsPanel.Changed -= MarkUnsaved;
         PhysicalBtnsPanel.Load(_projectService.CurrentProject.PhysicalButtons, _zones.Select(z => z.Zone).ToList());
         PhysicalBtnsPanel.CloseRequested += HidePhysicalBtnsPanel;
+        // Toute modification des boutons physiques (binding, actions, ajout/suppression)
+        // doit marquer le projet non sauvegarde — cet event n'etait abonne nulle part.
+        PhysicalBtnsPanel.Changed += MarkUnsaved;
         PhysicalBtnsPanel.Visibility = Visibility.Visible;
         ColPhysicalBtns.Width = new GridLength(400);
     }

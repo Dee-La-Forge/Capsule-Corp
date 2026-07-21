@@ -1060,6 +1060,7 @@ public partial class SequencePanel : System.Windows.Controls.UserControl
         _buildingCard = true;
         ItemsPanel.Children.Add(BuildItemCard(item));
         _buildingCard = false;
+        SequenceChanged?.Invoke();
     }
 
     private void BtnAddSlide_Click(object sender, RoutedEventArgs e)
@@ -1071,6 +1072,7 @@ public partial class SequencePanel : System.Windows.Controls.UserControl
         _buildingCard = true;
         ItemsPanel.Children.Add(BuildItemCard(item));
         _buildingCard = false;
+        SequenceChanged?.Invoke();
     }
 
     private static string FormatMs(long ms)
