@@ -743,10 +743,14 @@ public partial class MainWindow : Window
             // Filets de securite : si le bundle ne contenait pas libvlc/ffmpeg,
             // les recuperer depuis l'installation de l'App (son output les contient).
             ew.SetProgress(92, "Verification LibVLC / FFmpeg...");
-            if (!Directory.Exists(Path.Combine(outputDir, "libvlc")))
+            // Verifier la DLL elle-meme, pas juste le dossier : un bundle publie
+            // avec les natives embarquees dans l'exe laissait un dossier libvlc
+            // ne contenant que les .lib/lua — le Player plantait sur site
+            // (libvlc.dll manquant) sans que ce filet ne se declenche.
+            if (!File.Exists(Path.Combine(outputDir, "libvlc", "win-x64", "libvlc.dll")))
             {
                 var appLibvlc = Path.Combine(AppContext.BaseDirectory, "libvlc");
-                if (Directory.Exists(appLibvlc))
+                if (File.Exists(Path.Combine(appLibvlc, "win-x64", "libvlc.dll")))
                     CopyDirectory(appLibvlc, Path.Combine(outputDir, "libvlc"));
             }
             if (!Directory.Exists(Path.Combine(outputDir, "ffmpeg")))

@@ -12,7 +12,12 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- false : les DLLs natives (libvlc, plugins, runtime) restent en fichiers
+         a cote de l'exe, dans leur arborescence libvlc\win-x64\... — a true,
+         elles etaient embarquees dans l'exe puis extraites a plat dans un
+         dossier temp, ce qui cassait la decouverte de libvlc.dll/libvlccore.dll
+         et du dossier plugins par LibVLC. -->
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <PublishReadyToRun>true</PublishReadyToRun>

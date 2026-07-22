@@ -25,5 +25,21 @@ public partial class App : Application
             UMP.Core.Log.Error("DispatcherUnhandledException", args.Exception);
             args.Handled = true;
         };
+
+        // Meme initialisation explicite que l'editeur : localise libvlc\win-x64
+        // a cote de l'exe. Sans cet appel, l'echec de chargement survient plus
+        // tard, dans un contexte ou le message d'erreur est moins clair.
+        try
+        {
+            LibVLCSharp.Shared.Core.Initialize();
+        }
+        catch (Exception ex)
+        {
+            UMP.Core.Log.Error("Initialisation LibVLC impossible", ex);
+            System.Windows.MessageBox.Show(
+                $"Impossible de charger LibVLC (dossier libvlc\\win-x64 a cote de l'executable) :\n{ex.Message}",
+                "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+        }
     }
 }
