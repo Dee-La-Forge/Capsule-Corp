@@ -1,0 +1,82 @@
+<Window x:Class="UMP.App.Windows.ExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Export en cours..." Height="240" Width="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" Topmost="True">
+    <Border Background="#1E1E2E" CornerRadius="12" BorderBrush="{StaticResource BgBorderBrush}"
+            BorderThickness="1" Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" ShadowDepth="4"
+                              Color="Black" Opacity="0.5"/>
+        </Border.Effect>
+        <Grid Margin="24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,14">
+                <Image x:Name="LoaderImg" Source="/Assets/loader.png" Width="100" Height="100"
+                       Stretch="Uniform" Margin="0,0,10,0" RenderTransformOrigin="0.5,0.5">
+                    <Image.RenderTransform>
+                        <RotateTransform x:Name="ExportLoaderRotation" Angle="0"/>
+                    </Image.RenderTransform>
+                    <Image.Triggers>
+                        <EventTrigger RoutedEvent="Image.Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="ExportLoaderRotation"
+                                                     Storyboard.TargetProperty="Angle"
+                                                     From="0" To="360" Duration="0:10:0"
+                                                     RepeatBehavior="Forever"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Image.Triggers>
+                </Image>
+                <TextBlock x:Name="TxtTitle" Text="Export du projet..."
+                           Foreground="White" FontSize="16" FontWeight="SemiBold"
+                           FontFamily="Segoe UI" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <Grid Grid.Row="1" Margin="0,0,0,10">
+                <Border Background="#252538" CornerRadius="4" Height="6"/>
+                <Border x:Name="ProgressFill" Background="{StaticResource AccentBrush}" CornerRadius="4"
+                        Height="6" HorizontalAlignment="Left" Width="0"/>
+            </Grid>
+
+            <TextBlock x:Name="TxtStatus" Grid.Row="2" Text="Preparation..."
+                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontFamily="Segoe UI"
+                       TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
+
+            <TextBlock x:Name="TxtDetail" Grid.Row="3" Text=""
+                       Foreground="{StaticResource TextTertiaryBrush}" FontSize="9" TextWrapping="Wrap"
+                       VerticalAlignment="Bottom" FontFamily="Segoe UI"/>
+
+            <Button x:Name="BtnClose" Grid.Row="4" Content="Fermer" Height="34"
+                    Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
+                    FontSize="12" BorderThickness="0" Cursor="Hand"
+                    Margin="0,12,0,0" Visibility="Collapsed" Click="BtnClose_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentLightBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+    </Border>
+</Window>

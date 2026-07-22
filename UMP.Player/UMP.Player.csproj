@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>CapsuleMedia.Player</AssemblyName>
+    <ApplicationIcon>Assets\capsule.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    <TieredCompilation>true</TieredCompilation>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.9.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+    <PackageReference Include="FFMediaToolkit" Version="4.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UMP.Core\UMP.Core.csproj" />
+    <ProjectReference Include="..\UMP.Modules.Media\UMP.Modules.Media.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\JoystickService.cs" Link="Shared\JoystickService.cs" />
+    <Compile Include="..\Shared\InputBindingService.cs" Link="Shared\InputBindingService.cs" />
+    <Compile Include="..\Shared\FFmpegInit.cs" Link="Shared\FFmpegInit.cs" />
+    <Compile Include="..\Shared\AlphaVideoView.cs" Link="Shared\AlphaVideoView.cs" />
+    <Compile Include="..\Shared\RenderHelpers.cs" Link="Shared\RenderHelpers.cs" />
+    <Compile Include="..\Shared\ZonePlaybackView.cs" Link="Shared\ZonePlaybackView.cs" />
+  </ItemGroup>
+
+  <!-- DLLs FFmpeg (decodage PiP alpha) copiees dans le sous-dossier ffmpeg/ a cote de l'exe -->
+  <ItemGroup>
+    <None Include="..\ffmpeg\*.dll" Link="ffmpeg\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

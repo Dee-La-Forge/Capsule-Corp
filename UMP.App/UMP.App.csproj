@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>CapsuleMedia</AssemblyName>
+    <RootNamespace>UMP.App</RootNamespace>
+    <ApplicationIcon>Assets\capsule.ico</ApplicationIcon>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.9.0" />
+    <PackageReference Include="FFMediaToolkit" Version="4.8.1" />
+    <ProjectReference Include="..\UMP.Core\UMP.Core.csproj" />
+    <ProjectReference Include="..\UMP.Modules.Media\UMP.Modules.Media.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\ZoneRuntime.cs" Link="Shared\ZoneRuntime.cs" />
+    <Compile Include="..\Shared\JoystickService.cs" Link="Shared\JoystickService.cs" />
+    <Compile Include="..\Shared\InputBindingService.cs" Link="Shared\InputBindingService.cs" />
+    <Compile Include="..\Shared\FFmpegInit.cs" Link="Shared\FFmpegInit.cs" />
+    <Compile Include="..\Shared\AlphaVideoView.cs" Link="Shared\AlphaVideoView.cs" />
+    <Compile Include="..\Shared\RenderHelpers.cs" Link="Shared\RenderHelpers.cs" />
+    <Compile Include="..\Shared\ZonePlaybackView.cs" Link="Shared\ZonePlaybackView.cs" />
+  </ItemGroup>
+
+  <!-- DLLs FFmpeg (decodage PiP alpha) copiees dans le sous-dossier ffmpeg/ a cote de l'exe -->
+  <ItemGroup>
+    <None Include="..\ffmpeg\*.dll" Link="ffmpeg\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\capsule-corp-img.png" />
+    <Resource Include="Assets\Pillule.png" />
+    <Resource Include="Assets\Logo.png" />
+    <Resource Include="Assets\loader.png" />
+  </ItemGroup>
+
+  <!-- Publie le Player self-contained dans le sous-dossier "player" du publish de l'App.
+       L'export en production copie ce bundle tel quel : la machine cible n'a besoin
+       ni des sources ni du SDK .NET (RunExport, priorite 1). -->
+  <Target Name="PublishPlayer" AfterTargets="Publish">
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\UMP.Player\UMP.Player.csproj&quot; -c Release -o &quot;$(PublishDir)player&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)\.." />
+  </Target>
+
+</Project>
