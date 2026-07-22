@@ -2061,10 +2061,14 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             {
                 var angle = Math.Atan2(sub.ShadowOffsetY, sub.ShadowOffsetX) * 180.0 / Math.PI;
                 var depth = Math.Sqrt(sub.ShadowOffsetX * sub.ShadowOffsetX + sub.ShadowOffsetY * sub.ShadowOffsetY);
+                // Echelle des effets alignee sur celle du texte : sans ca, un flou
+                // de 5 px sur un texte reduit a ~8 px dans le viewport dilue
+                // l'ombre/le contour jusqu'a l'invisible.
                 tb.Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(sub.ShadowColor),
-                    BlurRadius = sub.ShadowBlur, Direction = angle, ShadowDepth = depth,
+                    BlurRadius = sub.ShadowBlur * fontScale, Direction = angle,
+                    ShadowDepth = depth * fontScale,
                     RenderingBias = System.Windows.Media.Effects.RenderingBias.Quality
                 };
             }
@@ -2084,7 +2088,9 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = tb.Margin
             };
-            strokeTb.Effect = new System.Windows.Media.Effects.BlurEffect { Radius = sub.OutlineWidth };
+            // Rayon a l'echelle du texte (borne basse pour rester visible)
+            strokeTb.Effect = new System.Windows.Media.Effects.BlurEffect
+            { Radius = Math.Max(0.75, sub.OutlineWidth * fontScale) };
             outlineGrid.Children.Add(strokeTb);
             outlineGrid.Children.Add(tb);
             outlineGrid.Tag = strokeTb;

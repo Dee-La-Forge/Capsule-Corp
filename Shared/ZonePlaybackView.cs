@@ -647,7 +647,8 @@ public sealed class ZonePlaybackView : Grid
         {
             if (string.IsNullOrEmpty(sub.FilePath)) continue;
             var sw2 = RenderHelpers.SafeSize(sub.Width * rw);
-            var fs2 = Math.Clamp(sub.FontSize * (4.0 / 3.0) * (rh / 1080.0), 6, 200);
+            var subScale = rh / 1080.0;
+            var fs2 = Math.Clamp(sub.FontSize * (4.0 / 3.0) * subScale, 6, 200);
             var subFf = RenderHelpers.ResolveFontFamily(
                 string.IsNullOrEmpty(sub.CustomFontPath) ? null : _resolvePath(sub.CustomFontPath),
                 sub.FontFamily);
@@ -671,10 +672,13 @@ public sealed class ZonePlaybackView : Grid
                 {
                     var angle = Math.Atan2(sub.ShadowOffsetY, sub.ShadowOffsetX) * 180.0 / Math.PI;
                     var depth = Math.Sqrt(sub.ShadowOffsetX * sub.ShadowOffsetX + sub.ShadowOffsetY * sub.ShadowOffsetY);
+                    // Echelle des effets alignee sur celle du texte (voir viewport) :
+                    // rend l'ombre proportionnelle quelle que soit la resolution.
                     stb.Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
                         Color = (Color)System.Windows.Media.ColorConverter.ConvertFromString(sub.ShadowColor),
-                        BlurRadius = sub.ShadowBlur, Direction = angle, ShadowDepth = depth,
+                        BlurRadius = sub.ShadowBlur * subScale, Direction = angle,
+                        ShadowDepth = depth * subScale,
                         RenderingBias = System.Windows.Media.Effects.RenderingBias.Quality
                     };
                 }
@@ -695,7 +699,8 @@ public sealed class ZonePlaybackView : Grid
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = stb.Margin
                 };
-                strokeTb.Effect = new System.Windows.Media.Effects.BlurEffect { Radius = sub.OutlineWidth };
+                strokeTb.Effect = new System.Windows.Media.Effects.BlurEffect
+                { Radius = Math.Max(0.75, sub.OutlineWidth * subScale) };
                 outlineGrid.Children.Add(strokeTb);
                 outlineGrid.Children.Add(stb);
                 subContent = outlineGrid;
