@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMP.App", "UMP.App\UMP.App.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMP.Player", "UMP.Player\UMP.Player.csproj", "{EC407F20-B58C-4E3C-99BC-D2E28F251BE6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UMP.Core.Tests", "UMP.Core.Tests\UMP.Core.Tests.csproj", "{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{EC407F20-B58C-4E3C-99BC-D2E28F251BE6}.Release|x64.Build.0 = Release|Any CPU
 		{EC407F20-B58C-4E3C-99BC-D2E28F251BE6}.Release|x86.ActiveCfg = Release|Any CPU
 		{EC407F20-B58C-4E3C-99BC-D2E28F251BE6}.Release|x86.Build.0 = Release|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Debug|x64.Build.0 = Debug|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Debug|x86.Build.0 = Debug|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Release|x64.ActiveCfg = Release|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Release|x64.Build.0 = Release|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Release|x86.ActiveCfg = Release|Any CPU
+		{45F7102E-07CA-4AA9-BB18-93F65CE3B9DD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
