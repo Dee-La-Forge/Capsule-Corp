@@ -501,7 +501,9 @@ public partial class ZoneControl : System.Windows.Controls.UserControl
             return;
         }
 
-        // Video — cacher image
+        // Video — cacher image. Oublier aussi les dimensions du media precedent :
+        // sans ca les overlays gardent l'ancien aspect ratio (meme fix que le moteur).
+        _mediaW = 0; _mediaH = 0;
         Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
         {
             ImageOverlay.Visibility = Visibility.Collapsed;

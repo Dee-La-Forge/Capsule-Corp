@@ -11,6 +11,13 @@
     <RootNamespace>UMP.App</RootNamespace>
     <ApplicationIcon>Assets\capsule.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Release : runtime .NET embarque -> les dossiers publish/release se copient
+         sur n'importe quel PC Windows x64 sans installer le Desktop Runtime.
+         Conditionne a Release pour ne pas alourdir les builds de dev (Debug).
+         Pas de PublishSingleFile : les DLLs natives ffmpeg/libvlc restent en
+         dossier, exactement comme aujourd'hui. -->
+    <RuntimeIdentifier Condition="'$(Configuration)'=='Release'">win-x64</RuntimeIdentifier>
+    <SelfContained Condition="'$(Configuration)'=='Release'">true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>

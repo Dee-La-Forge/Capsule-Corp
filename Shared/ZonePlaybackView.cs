@@ -46,6 +46,9 @@ public sealed class ZonePlaybackView : Grid
     private readonly Dictionary<string, List<SubtitleEntry>> _subCache = new();
     private readonly Dictionary<string, BitmapImage> _imageCache = new();
     private double _mediaW, _mediaH;
+    /// <summary>Derniere position connue (ms) — pour appliquer la visibilite In/Out
+    /// des overlays des leur (re)construction, sans attendre le tick a 500 ms.</summary>
+    private long _lastKnownMs;
     private int _jumpEndIndex = -1;
     private readonly HashSet<string> _pipToggledVisible = new();
     private readonly Dictionary<string, Border> _pipBorders = new();
@@ -92,16 +95,32 @@ public sealed class ZonePlaybackView : Grid
             case ButtonActionType.TogglePip:
             case ButtonActionType.ShowPip:
             case ButtonActionType.HidePip:
-                foreach (var v in _instances.ToList())
-                    if (string.IsNullOrEmpty(action.ZoneId) || v.ZoneId == action.ZoneId)
-                        v.ExecuteActionLocal(action);
+                var pipTargets = _instances
+                    .Where(v => string.IsNullOrEmpty(action.ZoneId) || v.ZoneId == action.ZoneId)
+                    .ToList();
+                // Zone cible introuvable (supprimee depuis) : repli sur toutes les
+                // zones plutot qu'un bouton muet en representation.
+                if (pipTargets.Count == 0 && _instances.Count > 0)
+                {
+                    Log.Warn($"Bouton physique {action.Type} : zone cible '{action.ZoneId}' introuvable — diffusion a toutes les zones");
+                    pipTargets = _instances.ToList();
+                }
+                foreach (var v in pipTargets)
+                    v.ExecuteActionLocal(action);
                 break;
             default:
                 var target = !string.IsNullOrEmpty(action.ZoneId)
                     ? _instances.FirstOrDefault(v => v.ZoneId == action.ZoneId)
                     : _instances.FirstOrDefault();
+                // Zone cible introuvable : repli sur la premiere zone (comportement
+                // par defaut historique) plutot qu'un bouton muet en representation.
+                if (target is null && !string.IsNullOrEmpty(action.ZoneId) && _instances.Count > 0)
+                {
+                    Log.Warn($"Bouton physique {action.Type} : zone cible '{action.ZoneId}' introuvable — repli sur la premiere zone");
+                    target = _instances.FirstOrDefault();
+                }
                 if (target is null)
-                    Log.Warn($"Bouton physique {action.Type} : zone cible '{action.ZoneId}' introuvable");
+                    Log.Warn($"Bouton physique {action.Type} : aucune surface de lecture active");
                 else
                     target.ExecuteActionLocal(action);
                 break;
@@ -218,6 +237,7 @@ public sealed class ZonePlaybackView : Grid
     private void PlayMedia(string path, bool isImage)
     {
         ResetPipToggleState();
+        _lastKnownMs = 0; // nouvel item : position courante = debut
         if (isImage)
         {
             // Arreter la video precedente : sinon son audio continue derriere l'image.
@@ -254,6 +274,10 @@ public sealed class ZonePlaybackView : Grid
         }
         else
         {
+            // Nouvelle video : oublier les dimensions du media precedent, sinon le
+            // garde `_mediaW <= 0` ne se redeclenche jamais et les overlays restent
+            // positionnes sur l'ancien aspect ratio (ex. 16:9 -> video portrait).
+            _mediaW = 0; _mediaH = 0;
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 _imageOverlay.Visibility = Visibility.Collapsed;
@@ -302,11 +326,13 @@ public sealed class ZonePlaybackView : Grid
 
             if (curItem?.SlideDuration == ImageSlideDuration.UntilClick)
             {
+                _lastKnownMs = 0;
                 UpdateOverlayVisibility(0);
                 return;
             }
 
             long total = curItem?.DurationMs ?? 5000;
+            _lastKnownMs = elapsed;
             UpdateOverlayVisibility(elapsed);
             if (elapsed >= total)
             {
@@ -333,6 +359,7 @@ public sealed class ZonePlaybackView : Grid
         var length = player.Length;
         if (length <= 0) return;
         var currentMs = (long)(player.Position * length);
+        _lastKnownMs = currentMs;
         UpdateOverlayVisibility(currentMs);
     }
 
@@ -430,7 +457,15 @@ public sealed class ZonePlaybackView : Grid
     {
         if (_refreshingOverlays) return;
         _refreshingOverlays = true;
-        try { RefreshOverlaysCore(); } finally { _refreshingOverlays = false; }
+        try
+        {
+            RefreshOverlaysCore();
+            // Appliquer immediatement la visibilite In/Out : sans ca, un bouton
+            // avec InMs > 0 (cree Visible par defaut) flashait jusqu'a 500 ms a
+            // chaque debut d'item ou resize, et un sous-titre affiche clignotait.
+            UpdateOverlayVisibility(_lastKnownMs);
+        }
+        finally { _refreshingOverlays = false; }
     }
 
     private void RefreshOverlaysCore()
@@ -775,10 +810,26 @@ public sealed class ZonePlaybackView : Grid
         if (btn.IsToggle)
         {
             btn.IsToggleActive = !btn.IsToggleActive;
-            // Mettre a jour le label du bouton toggle sans recreer les overlays
+            // Mettre a jour le contenu du bouton sans recreer les overlays :
+            // label pour les boutons texte, image ON/OFF pour les boutons image
+            // (avant, seuls les TextBlock etaient traites -> aucun retour visuel
+            // pour un toggle a base d'images).
             foreach (UIElement el in _overlayCanvas.Children)
-                if (el is Border tb && tb.Tag == btn && tb.Child is TextBlock ttb)
-                    ttb.Text = btn.IsToggleActive ? btn.LabelOn : btn.Label;
+                if (el is Border tb && tb.Tag == btn)
+                {
+                    if (tb.Child is TextBlock ttb)
+                        ttb.Text = btn.IsToggleActive ? btn.LabelOn : btn.Label;
+                    else if (tb.Child is Image tImg)
+                    {
+                        var p = btn.IsToggleActive && !string.IsNullOrEmpty(btn.ImagePathOn)
+                            ? btn.ImagePathOn : btn.ImagePath;
+                        if (!string.IsNullOrEmpty(p))
+                        {
+                            var bmp = LoadCachedImage(_resolvePath(p!));
+                            if (bmp is not null) tImg.Source = bmp;
+                        }
+                    }
+                }
         }
         var actions = btn.IsToggle && btn.IsToggleActive ? btn.ActionsOn : btn.Actions;
         foreach (var a in actions) ExecuteAction(a);
@@ -793,11 +844,14 @@ public sealed class ZonePlaybackView : Grid
         if (!string.IsNullOrEmpty(action.ZoneId) && action.ZoneId != _zone.Id)
         {
             var target = _instances.FirstOrDefault(v => !v._disposed && v.ZoneId == action.ZoneId);
-            if (target is null)
-                Log.Warn($"Action {action.Type} : zone cible '{action.ZoneId}' introuvable");
-            else
+            if (target is not null)
+            {
                 target.ExecuteActionLocal(action);
-            return;
+                return;
+            }
+            // Zone cible introuvable (supprimee depuis) : executer localement
+            // plutot que de rendre le bouton muet en representation.
+            Log.Warn($"Action {action.Type} : zone cible '{action.ZoneId}' introuvable — execution sur la zone locale");
         }
         ExecuteActionLocal(action);
     }

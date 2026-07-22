@@ -343,6 +343,11 @@ public partial class PhysicalButtonsPanel : System.Windows.Controls.UserControl
         {
             if (_zones is not null && _zones.Count > 1)
                 panel.Children.Add(BuildZoneSelector(action, panel));
+            else if (!string.IsNullOrEmpty(action.ZoneId)
+                     && (_zones is null || !_zones.Any(z => z.Id == action.ZoneId)))
+                // Zone cible supprimee et selecteur non affiche (<= 1 zone) :
+                // sans ce reset le ZoneId mort rendait le bouton physique muet
+                action.ZoneId = null;
         }
         else
             action.ZoneId = null; // actions globales : pas de cible

@@ -545,19 +545,25 @@ public partial class MainWindow : Window
 
             ew.SetProgress(5, "Preparation du projet...");
 
-            Project project = null!;
+            // Snapshot du projet pris sur le THREAD UI : tout l'export travaille
+            // ensuite sur un CLONE. Sans ca, ce thread de fond enumerait/serialisait
+            // le modele vivant pendant que l'editeur reste interactif -> "Collection
+            // was modified" ou project.json incoherent si on edite pendant l'export.
+            var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
+            string snapshotJson = null!;
             Dispatcher.Invoke(() =>
             {
                 _projectService.CurrentProject.Zones = _zones.Select(z => z.Zone).ToList();
-                project = _projectService.CurrentProject;
+                snapshotJson = JsonSerializer.Serialize(_projectService.CurrentProject, jsonOpts);
             });
+            var clone = JsonSerializer.Deserialize<Project>(snapshotJson, jsonOpts)!;
 
             // Collecter les fichiers — parcours generique de TOUS les chemins du
             // projet (corrige l'oubli des MediaPath des actions de boutons overlay).
             ew.SetProgress(10, "Collecte des fichiers media...");
             var pathMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var allPaths = new List<string?>();
-            UMP.Core.Services.ProjectPaths.Transform(project, p => { allPaths.Add(p); return p; });
+            UMP.Core.Services.ProjectPaths.Transform(clone, p => { allPaths.Add(p); return p; });
 
             // Fichiers references par le projet mais introuvables sur le disque :
             // impossibles a copier, leurs chemins resteront absolus dans project.json
@@ -613,13 +619,10 @@ public partial class MainWindow : Window
                 pathMap[path] = "media/" + fileName;
             }
 
-            // Remapper les chemins — meme parcours generique que la collecte
+            // Remapper les chemins — meme parcours generique que la collecte,
+            // directement sur le clone (deja isole du modele vivant).
             ew.SetProgress(72, "Generation du project.json...");
             string? Remap(string? p) => !string.IsNullOrEmpty(p) && pathMap.TryGetValue(p, out var rel) ? rel : p;
-
-            var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
-            var cloneJson = JsonSerializer.Serialize(project, jsonOpts);
-            var clone = JsonSerializer.Deserialize<Project>(cloneJson, jsonOpts)!;
             UMP.Core.Services.ProjectPaths.Transform(clone, Remap);
 
             File.WriteAllText(Path.Combine(outputDir, "project.json"), JsonSerializer.Serialize(clone, jsonOpts));
@@ -885,6 +888,12 @@ public partial class MainWindow : Window
         foreach (var (_, _, ctrl, _) in _zones)
             ctrl.StopPlayback();
 
+        // Purge defensive : si une session d'apercu precedente a ete fermee par
+        // Alt+F4/croix (pas Echap), son service d'input et l'abonnement Escape
+        // ont pu survivre -> chaque action serait declenchee en double.
+        _previewInputService?.Dispose(); _previewInputService = null;
+        Windows.PreviewWindow.EscapePressed -= CloseAllPreviews;
+
         // Ouvrir une fenetre preview par zone sur son ecran
         foreach (var (zone, _, _, _) in _zones)
         {
@@ -892,9 +901,12 @@ public partial class MainWindow : Window
             pw.Closed += (s2, e2) =>
             {
                 _previewWindows.Remove(pw);
-                // Si c'est la derniere fenetre, redonner le focus a l'editeur
+                // Derniere fenetre fermee (Alt+F4/croix, pas Echap) : faire le MEME
+                // nettoyage complet que le chemin Echap (dispose du service d'input,
+                // desabonnement Escape), sinon le service reste vivant et double
+                // les actions a l'Apercu suivant. CloseAllPreviews est idempotent.
                 if (_previewWindows.Count == 0)
-                    Dispatcher.BeginInvoke(new Action(() => Activate()));
+                    Dispatcher.BeginInvoke(new Action(CloseAllPreviews));
             };
             _previewWindows.Add(pw);
             pw.Show();
